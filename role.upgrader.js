@@ -23,6 +23,13 @@ var roleUpgrader = {
                         return (structure.structureType == STRUCTURE_CONTAINER || structure.structureType == STRUCTURE_STORAGE);
                     }
             });
+            if (targets.length == 0) { // no containers around
+                var sources = creep.room.find(FIND_SOURCES);
+                if(creep.harvest(sources[0]) == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(sources[0], {visualizePathStyle: {stroke: '#ffaa00'}});
+                }
+                return;
+            }
             var results = creep.withdraw(targets[targets.length -1], RESOURCE_ENERGY);
             if (results == ERR_NOT_IN_RANGE) {
                 creep.moveTo(targets[targets.length -1], {visualizePathStyle: {stroke: '#ffaa00'}});
