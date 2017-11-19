@@ -16,7 +16,7 @@ var structureTower = {
         
         let sortedDamagedStructures = _.sortBy(damagedStructures, 'hits');
         let mostDamagedStructure = sortedDamagedStructures[0];
-        if(mostDamagedStructure) {
+        if(mostDamagedStructure && (mostDamagedStructure.hits < 1000 || Game.time % 20 == 0)) {
             tower.repair(mostDamagedStructure);
         }
 

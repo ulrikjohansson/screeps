@@ -1,14 +1,17 @@
 var tinyqueue = require('tinyqueue');
 
 var level1Generic = {"price": 200, "parts": [WORK, MOVE, CARRY]};
-var level2Generic = {"price": 300,"parts": [WORK, WORK, CARRY, MOVE]};
-var level3Generic = {"price": 350, "parts": [WORK, WORK, CARRY, MOVE, MOVE]};
+var level2Generic = {"price": 300,"parts": [WORK, CARRY, CARRY, MOVE, MOVE]};
 var level4Generic = {"price": 400, "parts": [WORK, WORK, CARRY, CARRY, MOVE, MOVE]};
 var level5Generic = {"price": 450, "parts": [WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE]};
 var level6Generic = {"price": 500, "parts": [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE]};
 var level7Generic = {"price": 550, "parts": [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]};
 var level8Generic = {"price": 650, "parts": [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
 var level9Generic = {"price": 700, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
+var level10Generic = {"price": 750, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
+var level11Generic = {"price": 800, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
+var level12Generic = {"price": 850, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
+var level13Generic = {"price": 850, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
 
 // TODO: Create different levels of workers dynamically depending on available energy
 var roleSpawner = {
@@ -17,13 +20,16 @@ var roleSpawner = {
             "generic": [
                 level1Generic,
                 level2Generic,
-                level3Generic,
                 level4Generic,
                 level5Generic,
                 level6Generic,
                 level7Generic,
                 level8Generic,
-                level9Generic
+                level9Generic,
+                level10Generic,
+                level11Generic,
+                level12Generic,
+                level13Generic
                 ]
         };
         //get available energy
@@ -31,7 +37,7 @@ var roleSpawner = {
         var possible_energy = spawn.room.energyCapacityAvailable;
         
         //Emergency harvester creation?
-        if (creep_type == 'harvester' && Memory.stats.harvesters < 2) {
+        if (creep_type == 'harvester' && Memory.stats.harvesters < 3) {
             //get highest blueprint possible to make
             var possible_blueprints = _.filter(blueprints["generic"], function (bp) { return bp.price <= available_energy });
     

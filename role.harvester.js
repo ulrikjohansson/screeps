@@ -23,6 +23,22 @@ var roleHarvester = {
 
     /** @param {Creep} creep **/
     run: function(creep) {
+        if (creep.memory.debug) {
+            console.log("\n");
+            console.log("--------------"+ Game.time + "----------------");
+            console.log("Harvester " + creep.name + " Mem BEFORE run: " + JSON.stringify(creep.memory));
+        }
+        
+        if (creep.memory.debug) {
+            console.log("Harvester " + creep.name + " id: " + creep.id);
+            console.log("Harvester " + creep.name + " TTL: " + creep.ticksToLive);
+            console.log("Harvester " + creep.name + " pos: " + JSON.stringify(creep.pos));
+            console.log("Harvester " + creep.name + " fatigue: " + creep.fatigue);
+            console.log("Harvester " + creep.name + " body: " + JSON.stringify(creep.body));
+            console.log("Harvester " + creep.name + " carry: " + JSON.stringify(creep.carry));
+            console.log("Harvester " + creep.name + " hits: " + creep.hits);
+            
+        }
         
         this.creep = creep;
         
@@ -47,6 +63,10 @@ var roleHarvester = {
                 this.runDeposit(creep);
                 break;
         }
+        if (creep.memory.debug) {
+            console.log("Harvester " + creep.name + " Mem AFTER run: " + JSON.stringify(creep.memory));
+        }
+
 	},
 	runSpawning: function (creep) {
 	    if(!creep.spawning) {
@@ -58,23 +78,56 @@ var roleHarvester = {
 	},
 	runMoveToSource: function(creep) {
 	    //set a target if we don't have one
-	    if(!creep.memory.target_id) {
-	        closest_source = creep.pos.findClosestByRange(FIND_SOURCES);
-	        creep.memory.target_id = closest_source.id;
-	        target = closest_source;
-	        creep.say("Moving");
-	        if(creep.memory.debug) {
-	            console.log("Moving to source at x:" + target.pos.x + " y:" + target.pos.y);
+	    let source_path = null;
+	    let target = null;
+	    if(true/**!creep.memory.path*/) {
+	        source_path = this.findSourcePath(creep);
+	        if (source_path.length == 0) {
+	            //in range or no path to any target?
+	            let sources = creep.pos.findInRange(FIND_SOURCES, 1);
+	            if(sources.length > 0) {
+	                creep.memory.target_id = sources[0].id;
+	            }
+	            creep.memory.state = STATE_HARVESTING;
+	            creep.memory.path = null;
+    	        if(creep.memory.debug) {
+                    console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
+    	        }
+    	        return;
+	        } else {
+	            target = creep.room.lookForAt(LOOK_SOURCES,_.last(source_path).x, _.last(source_path).y);
+	            if(creep.memory.debug) {
+	                console.log("Harvester " + creep.name + ": found target > " + JSON.stringify(target));
+	            }
+	            creep.memory.target_id = target.id;
+    	        creep.memory.path = JSON.stringify(source_path);
 	        }
 	    } else {
-	        target = Game.getObjectById(creep.memory.target_id);
+	        console.log(creep.name);
+	        source_path = JSON.parse(creep.memory.path);
 	    }
 
-        creep.moveTo(target);
+        if(creep.memory.debug) {
+            console.log("Harvester " + creep.name + ": Source path:\n" + JSON.stringify(source_path, null, 2));
+        }
+        result = creep.moveByPath(source_path);
+        if(creep.memory.debug) {
+            console.log("Harvester " + creep.name + " moveByPath result: " + result);
+        }
+
+        if (result == ERR_NOT_FOUND) {
+            creep.memory.path = null;
+            //creep.memory.target_id = null;
+            return;
+        }
+        creep.memory.path = JSON.stringify(_.drop(source_path));
+        //creep.moveTo(target);
 
         //stop moving if we're in range
-        if(creep.pos.inRangeTo(target, 1)) {
+        if(creep.pos.inRangeTo(source_path[source_path.length -1], 1)) {
             creep.memory.state = STATE_HARVESTING;
+            creep.memory.path = null;
+            creep.memory.target_id = null;
 	        if(creep.memory.debug) {
                 console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
 	        }
@@ -82,13 +135,17 @@ var roleHarvester = {
 
 	},
     findSourcePath: function(creep) {
-		let goals = _.map(creep.room.find(FIND_SOURCES), function(source) {
+        let goals = creep.room.find(FIND_SOURCES);
+        if(creep.memory.debug) {
+            console.log("Harvester " + creep.name + ": Goals \n" + JSON.stringify(goals, null, 2));
+        }
+		goals = _.map(goals, function(source) {
 			// We can't actually walk on sources-- set `range` to 1 
 			// so we path next to it.
 			return { pos: source.pos, range: 1 };
 		  });
-		  console.log("Goals");
-		  console.log(JSON.stringify(goals, null, 2));
+		  //console.log("Goals");
+		  //console.log(JSON.stringify(goals, null, 2));
 
 		  let ret = PathFinder.search(
 			creep.pos, goals,
@@ -101,7 +158,6 @@ var roleHarvester = {
 			  roomCallback: function(roomName) {
 
 				let room = Game.rooms[roomName];
-				console.log("FindSource room: " + JSON.stringify(room, null, 2));
 				// In this example `room` will always exist, but since 
 				// PathFinder supports searches which span multiple rooms 
 				// you should be careful!
@@ -122,7 +178,7 @@ var roleHarvester = {
 
 				// Avoid creeps in the room
 				room.find(FIND_CREEPS).forEach(function(creep) {
-				  costs.set(creep.pos.x, creep.pos.y, 0xff);
+				  costs.set(creep.pos.x, creep.pos.y, 25);
 				});
 
 				return costs;
@@ -130,11 +186,22 @@ var roleHarvester = {
 			}
 		  );
 
-          console.log("Path result:\n" + JSON.stringify(ret, null, 2));
+          if(creep.memory.debug) {
+            console.log("Harvester " + creep.name + " Path result:\n" + JSON.stringify(ret, null));
+          }
 		  return ret.path;
     },
 	runHarvest: function(creep) {
-        target = Game.getObjectById(creep.memory.target_id);
+        let target = Game.getObjectById(creep.memory.target_id);
+        
+        if(!target) {
+            target = creep.pos.findInRange(FIND_SOURCES, 1)[0];
+            if(!target) {
+                console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "}");
+                creep.memory.state = STATE_MOVING_TO_SOURCE;
+                return;
+            }
+        }
 
         result = creep.harvest(target);
         
@@ -164,57 +231,70 @@ var roleHarvester = {
         }
         
 	},
-	runMoveToDeposit: function (creep) {
-	    let debugFilterProps = ['id', 'structureType'];
-	    
-	    if(!creep.memory.target_id) {
-            var targets = creep.room.find(FIND_STRUCTURES, {
-                    filter: (structure) => {
-                        return ((structure.structureType == STRUCTURE_SPAWN || structure.structureType == STRUCTURE_EXTENSION || structure.structureType == STRUCTURE_TOWER) &&
-                            (structure.energy < structure.energyCapacity) || ((structure.structureType == STRUCTURE_CONTAINER || structure.structureType == STRUCTURE_STORAGE) && structure.store[RESOURCE_ENERGY] < structure.storeCapacity));
-                    }
-            });
+	findDepositTarget: function (creep) {
+        var targets = creep.room.find(FIND_STRUCTURES, {
+                filter: (structure) => {
+                    return ((structure.structureType == STRUCTURE_SPAWN || structure.structureType == STRUCTURE_EXTENSION || structure.structureType == STRUCTURE_TOWER) &&
+                        (structure.energy < structure.energyCapacity) || ((structure.structureType == STRUCTURE_CONTAINER || structure.structureType == STRUCTURE_STORAGE) && structure.store[RESOURCE_ENERGY] < structure.storeCapacity));
+                }
+        });
 
-            if(targets.length > 0) {
-                //give priority to spawns & extensions
-                const priorities = {
-                    spawn: 1,
-                    extension: 2,
-                    tower: 3,
-                    container: 5,
-                    storage: 5,
-                };
-                let queue = tinyqueue([], function(a,b) {
-                    return priorities[a.structureType] - priorities[b.structureType];
-                });
-                for (let i in targets) {
-                    if(creep.memory.debug) {
-                        console.log("Debug: Harvester " + creep.name + ": Adding target to queue:\n" + JSON.stringify(targets[i], debugFilterProps, 2));
-                    }
-                    queue.push(targets[i]);
-                    if(creep.memory.debug) {
-                        console.log("Debug: Harvester " + creep.name + ": Top queue object is now\n" + JSON.stringify(queue.peek(), debugFilterProps, 2));
-                    }
-                }
-                
-                var target = queue.peek();
-                
-                if(creep.memory.debug) {
-                    console.log("Debug: Harvester " + creep.name + ": New target object from top of queue is\n" + JSON.stringify(target, debugFilterProps, 2));
-                }
-                
-                creep.memory.target_id = target.id;
-                creep.say("Moving");
-                //console.log("Moving to deposit " + target.structureType + " at x:" + target.pos.x + " y:" + target.pos.y);
-            } else {
-                console.log("No targets for harvester!");
-                var target = null;
-                return;
+        if(targets.length > 0) {
+            //give priority to spawns & extensions
+            const priorities = {
+                spawn: 1,
+                extension: 1,
+                tower: 1,
+                container: 10,
+                storage: 10,
+            };
+            let queue = tinyqueue([], function(a,b) {
+                return (Math.floor(priorities[a.structureType] + Math.random() * 8)) - (Math.floor(priorities[b.structureType] + Math.random() * 8));
+            });
+            for (let i in targets) {
+                queue.push(targets[i]);
             }
-	    } else {
-	        var target = Game.getObjectById(creep.memory.target_id);
+            
+            var target = queue.peek();
+        } else {
+            console.log("No targets for harvester!");
+            var target = null;
+            return;
+        }
+        
+        return target;
+	},
+	depositTargetUseful: function(target) {
+	    let target_type = target.structureType;
+	    switch(target_type) {
+	        case STRUCTURE_SPAWN:
+	        case STRUCTURE_EXTENSION:
+	        case STRUCTURE_TOWER:
+	            return (target.energy < target.energyCapacity);
+	        case STRUCTURE_CONTAINER:
+	        case STRUCTURE_STORAGE:
+	            return (_.sum(target.store) < target.storeCapacity);
+	    }
+	},
+	runMoveToDeposit: function (creep) {
+	    
+	    let target = null;
+	    if(creep.memory.target_id) {
+            target = Game.getObjectById(creep.memory.target_id);
 	    }
 	    
+	    if(
+	        !target ||
+	        (target && !this.depositTargetUseful(target))
+	    ){
+	        target = this.findDepositTarget(creep);
+	        if(!target) {
+                console.log("No target found!");
+                return;
+	        }
+            creep.memory.target_id = target.id;
+        }
+
         creep.moveTo(target, {visualizePathStyle: {stroke: '#ffffff'}});
     
         //stop moving if we're in range
