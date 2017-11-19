@@ -125,7 +125,6 @@ var roleHarvester = {
 				  costs.set(creep.pos.x, creep.pos.y, 0xff);
 				});
 
-                console.log(JSON.stringify(costs, null, 2));
 				return costs;
 			  },
 			}
