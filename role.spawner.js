@@ -28,15 +28,32 @@ var roleSpawner = {
         };
         //get available energy
         var available_energy = spawn.room.energyAvailable;
+        var possible_energy = spawn.room.energyCapacityAvailable;
+        
+        //Emergency harvester creation?
+        if (creep_type == 'harvester' && Memory.stats.harvesters < 2) {
+            //get highest blueprint possible to make
+            var possible_blueprints = _.filter(blueprints["generic"], function (bp) { return bp.price <= available_energy });
+    
+            if(possible_blueprints.length > 0) {
+                var body = possible_blueprints[possible_blueprints.length - 1].parts;
+                var result = spawn.spawnCreep(body, creep_type + " " + Game.time.toString(), {memory: {role: creep_type}});
+                console.log(creep_type + " spawn result: " + result + " using plan: " + JSON.stringify(body));
+                return result;
+            }
+        }
 
-        //get highest blueprint possible to make
-        var possible_blueprints = _.filter(blueprints["generic"], function (bp) { return bp.price <= available_energy });
-
-        if(possible_blueprints.length > 0) {
-            var body = possible_blueprints[possible_blueprints.length - 1].parts;
-            var result = spawn.spawnCreep(body, creep_type + " " + Game.time.toString(), {memory: {role: creep_type}});
-            console.log(creep_type + " spawn result: " + result + " using plan: " + JSON.stringify(body));
-            return result;
+        //get highest blueprint possible to make with current total capacity
+        var enough_energy = (available_energy == possible_energy);
+        if(enough_energy) {
+            var possible_blueprints = _.filter(blueprints["generic"], function (bp) { return bp.price <= available_energy });
+    
+            if(possible_blueprints.length > 0) {
+                var body = possible_blueprints[possible_blueprints.length - 1].parts;
+                var result = spawn.spawnCreep(body, creep_type + " " + Game.time.toString(), {memory: {role: creep_type}});
+                console.log(creep_type + " spawn result: " + result + " using plan: " + JSON.stringify(body));
+                return result;
+            }
         }
         
         return ERR_NOT_ENOUGH_ENERGY;
