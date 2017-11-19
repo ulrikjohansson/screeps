@@ -10,11 +10,14 @@ var structureTower = {
     
     run: function (tower) {
 
-        var closestDamagedStructure = tower.pos.findClosestByRange(FIND_STRUCTURES, {
+        var damagedStructures = tower.pos.findInRange(FIND_STRUCTURES, 10, {
             filter: (structure) => structure.hits < structure.hitsMax
         });
-        if(closestDamagedStructure) {
-            tower.repair(closestDamagedStructure);
+        
+        let sortedDamagedStructures = _.sortBy(damagedStructures, 'hits');
+        let mostDamagedStructure = sortedDamagedStructures[0];
+        if(mostDamagedStructure) {
+            tower.repair(mostDamagedStructure);
         }
 
         var closestHostile = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);

@@ -1,3 +1,5 @@
+var tinyqueue = require('tinyqueue');
+
 var level1Generic = {"price": 200, "parts": [WORK, MOVE, CARRY]};
 var level2Generic = {"price": 300,"parts": [WORK, WORK, CARRY, MOVE]};
 var level3Generic = {"price": 350, "parts": [WORK, WORK, CARRY, MOVE, MOVE]};
@@ -5,6 +7,8 @@ var level4Generic = {"price": 400, "parts": [WORK, WORK, CARRY, CARRY, MOVE, MOV
 var level5Generic = {"price": 450, "parts": [WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE]};
 var level6Generic = {"price": 500, "parts": [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE]};
 var level7Generic = {"price": 550, "parts": [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE]};
+var level8Generic = {"price": 650, "parts": [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
+var level9Generic = {"price": 700, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
 
 // TODO: Create different levels of workers dynamically depending on available energy
 var roleSpawner = {
@@ -18,6 +22,8 @@ var roleSpawner = {
                 level5Generic,
                 level6Generic,
                 level7Generic,
+                level8Generic,
+                level9Generic
                 ]
         };
         //get available energy
@@ -35,6 +41,10 @@ var roleSpawner = {
         
         return ERR_NOT_ENOUGH_ENERGY;
         
+    },
+    needForBuilder: function (spawn) {
+        var targets = spawn.room.find(FIND_CONSTRUCTION_SITES);
+        return targets.length > 0;
     },
     run: function(spawn) {
         
@@ -58,7 +68,7 @@ var roleSpawner = {
             this.spawnBiggestPossible(spawn, 'upgrader');
         }
         //create simple builder creeps
-        else if (builders.length < 4) {
+        else if (builders.length < 4 && this.needForBuilder(spawn) && Game.time % 20 == 0) {
             this.spawnBiggestPossible(spawn, 'builder');
         }
         //create simple repairer creeps
