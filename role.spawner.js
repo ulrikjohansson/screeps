@@ -1,6 +1,5 @@
 var tinyqueue = require('tinyqueue');
 
-var level1Generic = {"price": 200, "parts": [WORK, MOVE, CARRY]};
 var level2Generic = {"price": 300,"parts": [WORK, CARRY, CARRY, MOVE, MOVE]};
 var level4Generic = {"price": 400, "parts": [WORK, WORK, CARRY, CARRY, MOVE, MOVE]};
 var level5Generic = {"price": 450, "parts": [WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE]};
@@ -18,7 +17,6 @@ var roleSpawner = {
     spawnBiggestPossible: function(spawn, creep_type) {
         var blueprints = {
             "generic": [
-                level1Generic,
                 level2Generic,
                 level4Generic,
                 level5Generic,
@@ -50,7 +48,7 @@ var roleSpawner = {
         }
 
         //get highest blueprint possible to make with current total capacity
-        var enough_energy = (available_energy == possible_energy);
+        var enough_energy = (available_energy == possible_energy || available_energy >= _.last(blueprints["generic"]).price);
         if(enough_energy) {
             var possible_blueprints = _.filter(blueprints["generic"], function (bp) { return bp.price <= available_energy });
     
