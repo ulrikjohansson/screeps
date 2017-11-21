@@ -53,8 +53,10 @@ var roleSpawner = {
             var possible_blueprints = _.filter(blueprints["generic"], function (bp) { return bp.price <= available_energy });
     
             if(possible_blueprints.length > 0) {
-                var body = possible_blueprints[possible_blueprints.length - 1].parts;
-                var result = spawn.spawnCreep(body, creep_type + " " + Game.time.toString(), {memory: {role: creep_type}});
+                let blueprint = possible_blueprints[possible_blueprints.length - 1];
+                let body = blueprint.parts;
+                let name = creep_type + " " + Game.time.toString();
+                let result = spawn.spawnCreep(body, name, {memory: {role: creep_type, creationCost: blueprint.price}});
                 console.log(creep_type + " spawn result: " + result + " using plan: " + JSON.stringify(body));
                 return result;
             }

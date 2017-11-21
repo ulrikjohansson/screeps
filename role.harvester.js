@@ -110,7 +110,7 @@ var roleHarvester = {
         if(creep.memory.debug) {
             console.log("Harvester " + creep.name + ": Source path:\n" + JSON.stringify(source_path, null, 2));
         }
-        result = creep.moveByPath(source_path);
+        let result = creep.moveByPath(source_path);
         if(creep.memory.debug) {
             console.log("Harvester " + creep.name + " moveByPath result: " + result);
         }
@@ -203,7 +203,7 @@ var roleHarvester = {
             }
         }
 
-        result = creep.harvest(target);
+        let result = creep.harvest(target);
         
         switch (result) {
             case ERR_NOT_IN_RANGE:
@@ -306,9 +306,9 @@ var roleHarvester = {
         }
 	},
 	runDeposit: function (creep) {
-        target = Game.getObjectById(creep.memory.target_id);
+        let target = Game.getObjectById(creep.memory.target_id);
 
-        result = creep.transfer(target, RESOURCE_ENERGY);
+        let result = creep.transfer(target, RESOURCE_ENERGY);
         
         switch (result) {
             case ERR_NOT_IN_RANGE:
