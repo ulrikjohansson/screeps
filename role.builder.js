@@ -26,18 +26,36 @@ var roleBuilder = {
                         return (structure.structureType == STRUCTURE_CONTAINER || structure.structureType == STRUCTURE_STORAGE) && structure.store[RESOURCE_ENERGY] > 0;
                     }
             });
-            if (targets.length == 0) { // no containers around
-                var sources = creep.room.find(FIND_SOURCES);
-                if(creep.harvest(sources[sources.length - 1]) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(sources[sources.length - 1], {visualizePathStyle: {stroke: '#ffaa00'}});
+            if (targets.length > 0) {
+                var results = creep.withdraw(targets[targets.length -1], RESOURCE_ENERGY);
+                if (results == ERR_NOT_IN_RANGE) {
+                    creep.moveTo(targets[targets.length -1], {visualizePathStyle: {stroke: '#ffaa00'}});
                 }
-                return;
-            }
-            var results = creep.withdraw(targets[targets.length -1], RESOURCE_ENERGY);
-            if (results == ERR_NOT_IN_RANGE) {
-                creep.moveTo(targets[targets.length -1], {visualizePathStyle: {stroke: '#ffaa00'}});
+            } else {
+        	    const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+                if(target) {
+                    if(creep.pos.inRangeTo(target, 1)) {
+                        this.runPickup(creep, target);
+                        return;
+                    }
+                    creep.moveTo(target, {visualizePathStyle: {stroke: '#ffaa00'}});
+                    
+                }
+                
             }
 	    }
+	},
+	runPickup: function(creep, target) {
+	    if (!target) {
+            const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+	    }
+        
+        if(!target) {
+            console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "}");
+            return;
+        }
+
+        let result = creep.pickup(target);
 	}
 };
 

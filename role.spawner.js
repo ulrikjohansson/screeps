@@ -12,9 +12,25 @@ var level11Generic = {"price": 800, "parts": [WORK, WORK, WORK, WORK, CARRY, CAR
 var level12Generic = {"price": 850, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
 var level13Generic = {"price": 850, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
 
+var level1Carrier = {"price": 300,"parts": [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
+var level2Carrier = {"price": 350,"parts": [CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
+
+var level1Harvester = {"price": 300,"parts": [WORK, WORK, MOVE, MOVE]};
+var level2Harvester = {"price": 350,"parts": [WORK, WORK, WORK, MOVE]};
+var level3Harvester = {"price": 450,"parts": [WORK, WORK, WORK, WORK, MOVE]};
+var level4Harvester = {"price": 550,"parts": [WORK, WORK, WORK, WORK, WORK, MOVE]};
+
+function extend(obj, src) {
+    for (var key in src) {
+        if (src.hasOwnProperty(key)) obj[key] = src[key];
+    }
+    return obj;
+}
+
+
 // TODO: Create different levels of workers dynamically depending on available energy
 var roleSpawner = {
-    spawnBiggestPossible: function(spawn, creep_type) {
+    spawnBiggestPossible: function(spawn, creep_type, extra_memory = {}) {
         var blueprints = {
             "generic": [
                 level2Generic,
@@ -28,74 +44,142 @@ var roleSpawner = {
                 level11Generic,
                 level12Generic,
                 level13Generic
-                ]
+            ],
+            "carrier": [
+                level1Carrier,
+                level2Carrier
+            ],
+            "harvester": [
+                level1Harvester,
+                level2Harvester,
+                level3Harvester,
+                level4Harvester,
+            ]
         };
         //get available energy
         var available_energy = spawn.room.energyAvailable;
         var possible_energy = spawn.room.energyCapacityAvailable;
         
-        //Emergency harvester creation?
-        if (creep_type == 'harvester' && Memory.stats.harvesters < 3) {
-            //get highest blueprint possible to make
-            var possible_blueprints = _.filter(blueprints["generic"], function (bp) { return bp.price <= available_energy });
-    
-            if(possible_blueprints.length > 0) {
-                var body = possible_blueprints[possible_blueprints.length - 1].parts;
-                var result = spawn.spawnCreep(body, creep_type + " " + Game.time.toString(), {memory: {role: creep_type}});
-                console.log(creep_type + " spawn result: " + result + " using plan: " + JSON.stringify(body));
-                return result;
-            }
-        }
-
         //get highest blueprint possible to make with current total capacity
-        var enough_energy = (available_energy == possible_energy || available_energy >= _.last(blueprints["generic"]).price);
+        let blueprint_list = [];
+        if (creep_type in blueprints) {
+            blueprint_list = blueprints[creep_type];
+        } else {
+            blueprint_list = blueprints["generic"];
+        }
+        var enough_energy = (available_energy == possible_energy || available_energy >= _.last(blueprint_list).price);
         if(enough_energy) {
-            var possible_blueprints = _.filter(blueprints["generic"], function (bp) { return bp.price <= available_energy });
+            var possible_blueprints = _.filter(blueprint_list, function (bp) { return bp.price <= available_energy });
     
             if(possible_blueprints.length > 0) {
                 let blueprint = possible_blueprints[possible_blueprints.length - 1];
                 let body = blueprint.parts;
                 let name = creep_type + " " + Game.time.toString();
-                let result = spawn.spawnCreep(body, name, {memory: {role: creep_type, creationCost: blueprint.price}});
+                let memory = extend({role: creep_type, creationCost: blueprint.price}, extra_memory);
+                let result = spawn.spawnCreep(body, name, {"memory": memory});
                 console.log(creep_type + " spawn result: " + result + " using plan: " + JSON.stringify(body));
-                return result;
+                return name;
             }
         }
-        
-        return ERR_NOT_ENOUGH_ENERGY;
-        
     },
     needForBuilder: function (spawn) {
         var targets = spawn.room.find(FIND_CONSTRUCTION_SITES);
         return targets.length > 0;
     },
+    findRelevantSources: function (spawn) {
+        var sources =  spawn.room.find(FIND_SOURCES, {filter: function(object) {
+            let flags = object.pos.lookFor(LOOK_FLAGS);
+            if(flags.length == 1 && flags[0].color == COLOR_RED) {
+                return false;
+            }
+            return true;
+        }});
+        //console.log(JSON.stringify(sources, null, 2));
+        if(!spawn.room.memory.sources) {
+            spawn.room.memory.sources = {};
+        }
+        _.forEach(sources, function(source) {
+            //console.log(JSON.stringify(source, null, 2));
+            if (!spawn.room.memory.sources[source.id]) {
+                spawn.room.memory.sources[source.id] = {};
+            }
+        });
+        
+        //cleanup irrelevant sources from memory (TODO: do we need to scrub the harvesters memory of this source as well?)
+        let list_of_source_ids = _.pluck(sources, 'id');
+        _.forEach(spawn.room.memory.sources, function(source_in_mem, key) {
+            if(!_.includes(list_of_source_ids, key)) {
+                console.log("deleting: " + key);
+                delete spawn.room.memory.sources[key];
+            }
+        });
+        
+
+        return sources;
+    },
+    findVacantSource: function (spawn) {
+        let mem_sources =  spawn.room.memory.sources;
+        //console.log("mem_sources: " + JSON.stringify(mem_sources));
+        let vacantSource =_.findKey(mem_sources, function(source) {
+            //console.log("mem source: " + JSON.stringify(source));
+            return (
+                !source.harvester || 
+                (source.harvester && !Game.creeps[source.harvester])
+            );
+        });
+        //console.log("vacant_source: " + JSON.stringify(vacantSource, null, 2));
+        return Game.getObjectById(vacantSource);
+    },
     run: function(spawn) {
         
         var harvesters = _.filter(Game.creeps, (creep) => creep.memory.role == 'harvester');
+        var carriers = _.filter(Game.creeps, (creep) => creep.memory.role == 'carrier');
         var builders = _.filter(Game.creeps, (creep) => creep.memory.role == 'builder');
         var upgraders = _.filter(Game.creeps, (creep) => creep.memory.role == 'upgrader');
         var repairers = _.filter(Game.creeps, (creep) => creep.memory.role == 'repairer');
         Memory.stats = {
             "harvesters": harvesters.length,
+            "carriers": carriers.length,
             "builders": builders.length,
             "upgraders": upgraders.length,
             "repairers": repairers.length
         };
 
+        //Find and update source in memory
+        let sources = this.findRelevantSources(spawn);
+        let num_sources = sources.length;
+        
+        
+        let vacant_source = this.findVacantSource(spawn);
+
         //create simple harvester creeps
-        if (harvesters.length < 4) {
-            this.spawnBiggestPossible(spawn, 'harvester');
+        
+        
+        
+        if (carriers.length < harvesters.length) {
+            this.spawnBiggestPossible(spawn, 'carrier');
+        }
+        else if (vacant_source) {
+            let creep_name = this.spawnBiggestPossible(spawn, 'harvester', {target_id: vacant_source.id});
+            if (creep_name) {
+                //console.log("name: " + creep_name);
+                let creep = Game.creeps[creep_name];
+                //console.log("vacant_source:");
+                //console.log(JSON.stringify(vacant_source, null, 2));
+                spawn.room.memory.sources[vacant_source.id] = {"harvester": creep_name};
+                //console.log(JSON.stringify(spawn.room.memory.sources[vacant_source.id], null, 2));
+            }
         }
         //create simple upgrader creeps
-        else if (upgraders.length < 3) {
+        else if (upgraders.length < 1) {
             this.spawnBiggestPossible(spawn, 'upgrader');
         }
         //create simple builder creeps
-        else if (builders.length < 4 && this.needForBuilder(spawn) && Game.time % 20 == 0) {
+        else if (builders.length < 1 && this.needForBuilder(spawn) && Game.time % 20 == 0) {
             this.spawnBiggestPossible(spawn, 'builder');
         }
         //create simple repairer creeps
-        else if (repairers.length < 2) {
+        else if (repairers.length < 1) {
             this.spawnBiggestPossible(spawn, 'repairer');
         }
     }

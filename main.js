@@ -1,4 +1,5 @@
 var roleHarvester = require('role.harvester');
+var roleCarrier = require('role.energyCarrier');
 var roleUpgrader = require('role.upgrader');
 var roleBuilder = require('role.builder');
 var roleRepairer = require('role.repairer');
@@ -6,6 +7,8 @@ var roleSpawner = require('role.spawner');
 var structureTower = require('tower');
 
 module.exports.loop = function () {
+    
+    console.log("----------------- NEW TICK "+Game.time+"--------------------");
 
     for(let name in Memory.creeps) {
         if(!Game.creeps[name]) {
@@ -28,6 +31,9 @@ module.exports.loop = function () {
         let creep = Game.creeps[name];
         if(creep.memory.role == 'harvester') {
             roleHarvester.run(creep);
+        }
+        if(creep.memory.role == 'carrier') {
+            roleCarrier.run(creep);
         }
         if(creep.memory.role == 'upgrader') {
             roleUpgrader.run(creep);
