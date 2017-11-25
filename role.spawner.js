@@ -74,7 +74,7 @@ var roleSpawner = {
             if(possible_blueprints.length > 0) {
                 let blueprint = possible_blueprints[possible_blueprints.length - 1];
                 let body = blueprint.parts;
-                let name = creep_type + " " + Game.time.toString();
+                let name = creep_type + "_" + Game.time.toString();
                 let memory = extend({role: creep_type, creationCost: blueprint.price}, extra_memory);
                 let result = spawn.spawnCreep(body, name, {"memory": memory});
                 console.log(creep_type + " spawn result: " + result + " using plan: " + JSON.stringify(body));
@@ -171,11 +171,13 @@ var roleSpawner = {
             }
         }
         //create simple upgrader creeps
-        else if (upgraders.length < 1) {
+        else if (upgraders.length < 1 || (upgraders.length < 2 && spawn.room.energyAvailable > 500)) {
             this.spawnBiggestPossible(spawn, 'upgrader');
         }
         //create simple builder creeps
-        else if (builders.length < 1 && this.needForBuilder(spawn) && Game.time % 20 == 0) {
+        else if (
+            (builders.length < 1 || (builders.length < 3 && spawn.room.energyAvailable > 500)) && this.needForBuilder(spawn)
+            && Game.time % 20 == 0) {
             this.spawnBiggestPossible(spawn, 'builder');
         }
         //create simple repairer creeps

@@ -51,7 +51,6 @@ var roleBuilder = {
 	    }
         
         if(!target) {
-            console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "}");
             return;
         }
 

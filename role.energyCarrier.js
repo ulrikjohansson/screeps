@@ -23,23 +23,20 @@ var roleHarvester = {
 
     /** @param {Creep} creep **/
     run: function(creep) {
-        if (creep.memory.debug) {
-            console.log("\n");
-            console.log("--------------"+ Game.time + "----------------");
-            console.log("Harvester " + creep.name + " Mem BEFORE run: " + JSON.stringify(creep.memory));
-        }
-        
-        if (creep.memory.debug) {
-            console.log("Harvester " + creep.name + " id: " + creep.id);
-            console.log("Harvester " + creep.name + " TTL: " + creep.ticksToLive);
-            console.log("Harvester " + creep.name + " pos: " + JSON.stringify(creep.pos));
-            console.log("Harvester " + creep.name + " fatigue: " + creep.fatigue);
-            console.log("Harvester " + creep.name + " body: " + JSON.stringify(creep.body));
-            console.log("Harvester " + creep.name + " carry: " + JSON.stringify(creep.carry));
-            console.log("Harvester " + creep.name + " hits: " + creep.hits);
-            
-        }
-        
+        creep.debug("Mem BEFORE run: " + JSON.stringify(creep.memory));
+        creep.debug(JSON.stringify(
+            {
+                "id": creep.id,
+                "ticksToLive": creep.ticksToLive,
+                "pos": "x:" + creep.pos.x + " y:" + creep.pos.y + " room: " + creep.pos.roomName,
+                "fatigue": creep.fatigue,
+                "body": _.countBy(creep.body, "type"),
+                "carry": creep.carry,
+                "capacity": creep.carryCapacity,
+                "hits": creep.hits
+            }, null, 2)
+        );
+
         this.creep = creep;
         
         if(!creep.memory.state) {
@@ -63,33 +60,31 @@ var roleHarvester = {
                 this.runDeposit(creep);
                 break;
         }
-        if (creep.memory.debug) {
-            console.log("Harvester " + creep.name + " Mem AFTER run: " + JSON.stringify(creep.memory));
-        }
+        creep.debug("Mem AFTER run: " + JSON.stringify(creep.memory));
 
 	},
 	runSpawning: function (creep) {
 	    if(!creep.spawning) {
 	        creep.memory.state = STATE_MOVING_TO_SOURCE;
-	        if(creep.memory.debug) {
-                console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
-	        }
+            creep.debug("new state {" + state_lookup(creep.memory.state) + "]");
 	    }
 	},
 	runMoveToSource: function(creep) {
 	    var target = null;
 	    if(creep.memory.source_target_pos) {
 	        let mempos = creep.memory.source_target_pos;
-	        if(creep.memory.debug) {
-	            console.log("mempos: " + JSON.stringify(mempos));
-	            console.log("x:" + mempos["x"] + " y:" + mempos["y"] + " roomName:" + mempos["roomName"]);
-	        }
-	        //target = creep.room.lookForAt(LOOK_ENERGY, new RoomPosition(mempos["x"], mempos["y"], mempos["roomName"]));
-	        let target_list = creep.room.lookForAt(LOOK_ENERGY, new RoomPosition(34, 20, "sim"));
+            creep.debug("mempos: " + JSON.stringify(mempos));
+            creep.debug("x:" + mempos["x"] + " y:" + mempos["y"] + " roomName:" + mempos["roomName"]);
+
+	        let target_list = creep.room.lookForAt(LOOK_ENERGY, new RoomPosition(mempos.x, mempos.y, mempos.roomName));
+            creep.debug("Target list from mem pos " + JSON.stringify(target_list, ["pos", "x", "y", "energy"]));
+
 	        if (target_list.length > 0) {
 	            target = target_list[0];
+	            creep.debug("Harvester " + creep.name + ": using target " + JSON.stringify(target, ["pos", "x", "y", "energy"]));
+	        } else {
+	            creep.debug("Harvester " + creep.name + ": no target found from mempos");
 	        }
-	        
 	    }
 
 	    if(!target) {
@@ -98,31 +93,26 @@ var roleHarvester = {
     	        
     	    }});
     
-            if(creep.memory.debug) {
-                console.log("Harvester " + creep.name + ": found "+targets.length+" energy targets");
-            }
-    
+            creep.debug("Harvester " + creep.name + ": found "+targets.length+" energy targets");
+
     
             let queue = tinyqueue([], function(a,b) {
                 return (a.cost - b.cost);
             });
             for (let i in targets) {
                 let target = targets[i];
-                let cost = _.max[(creep.pos.getRangeTo(target) - (target.amount / 2)), creep.carryCapacity * 2];
+                let cost = (creep.pos.getRangeTo(target) - _.max([target.amount / 2, creep.carryCapacity]));
                 let object = {cost: cost, target: target};
                 queue.push(object);
             }
             
             let target_object = queue.peek();
+            creep.debug("Target list:\n" + JSON.stringify(queue.data, ["target", "pos", "x", "y", "energy"], 2));
             target = target_object.target;
+            creep.debug("Using target " + JSON.stringify(target, ["pos", "x", "y", "energy"]));
             creep.memory.source_target_pos = target.pos;
 	    }
 
-        if(creep.memory.debug) {
-            console.log("Harvester " + creep.name + ": Best energy target is "+ JSON.stringify(target));
-        }
-        
-	    
 	    //const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
         if(target) {
             if(creep.pos.inRangeTo(target, 1)) {
@@ -130,14 +120,12 @@ var roleHarvester = {
                 this.runHarvest(creep, target);
                 return;
             }
-            if(creep.memory.debug) {
-                console.log("Harvester " + creep.name + ": Target pos > " + JSON.stringify(target.pos));
-            }
+            creep.debug("Target pos > " + JSON.stringify(target.pos));
             let result = creep.moveTo(target);
-            if(creep.memory.debug) {
-                console.log("Harvester " + creep.name + ": Move result > "+ result);
-            }
-            
+            creep.debug("Move result > "+ result);
+
+        } else {
+            creep.debug("No energy source to target!");
         }
 	},
 	runHarvest: function(creep, target) {
@@ -146,7 +134,7 @@ var roleHarvester = {
 	    }
         
         if(!target) {
-            console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "}");
+            creep.info("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "}");
             creep.memory.state = STATE_MOVING_TO_SOURCE;
             this.runMoveToSource(creep);
             return;
@@ -159,17 +147,13 @@ var roleHarvester = {
             case ERR_INVALID_TARGET:
             case ERR_NOT_IN_RANGE:
                 creep.memory.state = STATE_MOVING_TO_SOURCE;
-    	        if(creep.memory.debug) {
-                    console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
-    	        }
+                creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
                 return;
         }
         
-        if(_.sum(creep.carry) >= creep.carryCapacity * 0.5 && creep.pos.getRangeTo(target) > 10) {
+        if(_.sum(creep.carry) >= creep.carryCapacity * 0.75 ) {
             creep.memory.state = STATE_MOVING_TO_DEPOSIT;
-	        if(creep.memory.debug) {
-                console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
-	        }
+            creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
         }
         
 	},
@@ -199,7 +183,7 @@ var roleHarvester = {
             
             var target = queue.peek();
         } else {
-            console.log("No regular deposit targets for carrier!");
+            creep.warning("No regular deposit targets for carrier!");
             var target = null;
             return;
         }
@@ -222,7 +206,14 @@ var roleHarvester = {
 	    
 	    let target = null;
 	    if(creep.memory.target_id) {
-            target = Game.getObjectById(creep.memory.target_id);
+            try {
+                creep.debug("Trying to deserialize target_id="+creep.memory.target_id+" to structure");
+                target = Game.getObjectById(creep.memory.target_id);
+            } catch (e) {
+                creep.debug("Trying to deserialize target_id="+creep.memory.target_id+" to flag");
+                target = Game.flags[creep.memory.target_id];
+            }
+            creep.debug("Got target from memory target_id="+creep.memory.target_id+": " + JSON.stringify(target));
 	    }
 	    
 	    if(
@@ -230,16 +221,16 @@ var roleHarvester = {
 	        (target && !this.depositTargetUseful(target))
 	    ){
 	        target = this.findDepositTarget(creep);
-	        if(creep.memory.debug) {console.log("target returned from findDepositTarget: " + JSON.stringify(target));}
+	        creep.debug("target returned from findDepositTarget: " + JSON.stringify(target));
 	        if(!target) {
 	            let flag = this.findDropFlag(creep);
-	            if(creep.memory.debug) {console.log("found flag: " + JSON.stringify(flag));}
+	            creep.debug("found flag: " + JSON.stringify(flag));
 	            if (flag) {
 	                target = flag;
-	                if(creep.memory.debug) {console.log("setting target_id to: " + JSON.stringify(target.name));}
+	                creep.debug("setting target_id to: " + JSON.stringify(target.name));
 	                creep.memory.target_id = target.name;
 	            } else {
-                console.log("No target found!");
+                creep.warning("No target found!");
                 return;
 	            }
 	        } else {
@@ -250,12 +241,10 @@ var roleHarvester = {
         creep.moveTo(target, {visualizePathStyle: {stroke: '#ffffff'}});
     
         //stop moving if we're in range
-        if(creep.memory.debug) {console.log("In range to "+target.name+"?: " + JSON.stringify(creep.pos.inRangeTo(target, 1)));}
+        creep.debug("In range to "+target.pos+"?: " + JSON.stringify(creep.pos.inRangeTo(target, 1)));
         if(creep.pos.inRangeTo(target, 1)) {
             creep.memory.state = STATE_DEPOSITING;
-	        if(creep.memory.debug) {
-                console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
-	        }
+            creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
 	        this.runDeposit(creep);
         }
 	},
@@ -263,49 +252,41 @@ var roleHarvester = {
         let target = null;
         let result = null;
         try {
-            if (creep.memory.debug) {console.log("Harvester " + creep.name + ": trying to deserialize to structure");}
+            creep.debug("Trying to deserialize to structure");
             target = Game.getObjectById(creep.memory.target_id);
-            if (creep.memory.debug) {console.log("Harvester " + creep.name + ": Dropping energy near " + target.name);}
+            creep.debug("Dropping energy near " + target.name);
             result = creep.transfer(target, RESOURCE_ENERGY);
         } catch (e) {
-            if (creep.memory.debug) {console.log("Harvester " + creep.name + ": Not structure, trying to deserialize to flag");}
+            creep.debug("Not structure, trying to deserialize to flag");
             target = Game.flags[creep.memory.target_id];
-            if (creep.memory.debug) {console.log("Harvester " + creep.name + ": Dropping energy near " + target.name);}
+            creep.debug("Dropping energy near " + target.name);
             result = creep.drop(RESOURCE_ENERGY);
         }
         
-        if (creep.memory.debug) {console.log("Harvester " + creep.name + ": Offload result " + result);}
+        creep.debug("Offload result: " + result);
 
         switch (result) {
             case ERR_NOT_IN_RANGE:
                 creep.memory.state = STATE_MOVING_TO_DEPOSIT;
-    	        if(creep.memory.debug) {
-                    console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
-    	        }
+                creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
                 return;
             case ERR_INVALID_TARGET:
             case ERR_FULL:
                 creep.memory.target_id = null;
                 creep.memory.state = STATE_MOVING_TO_DEPOSIT;
-    	        if(creep.memory.debug) {
-                    console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
-    	        }
+                creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
                 return;
             case ERR_NOT_ENOUGH_RESOURCES:
                 creep.memory.state = STATE_MOVING_TO_SOURCE;
                 creep.memory.target_id = null;
-    	        if(creep.memory.debug) {
-                    console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
-    	        }
+                creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
                 return;
         }
         
         if(creep.carry[RESOURCE_ENERGY] == 0) {
             creep.memory.state = STATE_MOVING_TO_SOURCE;
             creep.memory.target_id = null;
-	        if(creep.memory.debug) {
-                console.log("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "]");
-	        }
+            creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
         }
 	},
 	findDropFlag: function(creep) {

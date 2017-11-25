@@ -1,3 +1,7 @@
+var logLevel = "INFO";
+
+require('proto.Creep')();
+
 var roleHarvester = require('role.harvester');
 var roleCarrier = require('role.energyCarrier');
 var roleUpgrader = require('role.upgrader');
@@ -5,6 +9,7 @@ var roleBuilder = require('role.builder');
 var roleRepairer = require('role.repairer');
 var roleSpawner = require('role.spawner');
 var structureTower = require('tower');
+
 
 module.exports.loop = function () {
     
