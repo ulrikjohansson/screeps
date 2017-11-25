@@ -69,7 +69,9 @@ var roleHarvester = {
 	runMoveToSource: function(creep) {
         let target = Game.getObjectById(creep.memory.target_id);
         if(!target) {
-            console.log("<span style='color:red'>No target for "+creep.name+"</span>");
+            console.log("<span style='color:red'>No target for "+creep.name+". Clearing memory</span>");
+            delete creep.memory.target_id;
+            return;
         }
         if(creep.memory.debug) {
             console.log("Harvester " + creep.name + ": moving to target > " + JSON.stringify(target));

@@ -89,9 +89,14 @@ var roleHarvester = {
 
 	    if(!target) {
     	    const targets = creep.room.find(FIND_DROPPED_ENERGY, {filter: function(resource) {
-    	        return resource.amount >= creep.carryCapacity && resource.pos.findInRange(FIND_FLAGS, 1).length == 0;
+    	        return resource.amount >= creep.carryCapacity / 2 && resource.pos.findInRange(FIND_FLAGS, 1).length == 0;
     	        
     	    }});
+    	    
+    	    if(targets.length == 0) {
+    	        creep.warning("No dropped energy targets found!");
+    	        return;
+    	    }
     
             creep.debug("Harvester " + creep.name + ": found "+targets.length+" energy targets");
 

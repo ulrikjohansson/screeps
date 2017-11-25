@@ -22,14 +22,31 @@ var roleRepairer = {
 
 	    if(creep.memory.repairing) {
 
+            //find structures other than walls with high hits to repair
             var targets = creep.room.find(FIND_STRUCTURES, {
                     filter: (structure) => {
-                        return structure.hits < structure.hitsMax;
+                        return (
+                            structure.hits < structure.hitsMax && 
+                            (
+                                !_.some([STRUCTURE_WALL, STRUCTURE_RAMPART], structure.structureType) ||
+                                (_.some([STRUCTURE_WALL, STRUCTURE_RAMPART], structure.structureType) && structure.hits < 10000)
+                            )
+                        );
                     }
             });
+            
+            //if there are no other structures requiring repair, build on the walls and ramparts
+            if(targets.length == 0) {
+                var targets = creep.room.find(FIND_STRUCTURES, {
+                        filter: (structure) => {
+                            return structure.hits < structure.hitsMax;
+                        }
+                });
+            }
+            
             if(targets.length > 0) {
                 if(creep.repair(targets[0]) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(targets[0], {visualizePathStyle: {stroke: '#ffffff'}});
+                    creep.moveTo(_.shuffle(targets)[0], {visualizePathStyle: {stroke: '#ffffff'}});
                 }
             }
 	    }
