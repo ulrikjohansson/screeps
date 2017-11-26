@@ -66,9 +66,12 @@ var roleRepairer = {
                     creep.debug("Not in repair range, moving closer to target: "+ target.id);
                     creep.moveTo(target, {visualizePathStyle: {stroke: '#ffffff'}});
                 } else if (result == ERR_NOT_ENOUGH_RESOURCES) {
-                    creep.debug("Repair OK. Deleting target from memory, and searching from scratch");
+                    creep.debug("Repair OK & out of energy. Deleting target from memory, and searching from scratch");
                     delete creep.memory.target_id;
-                }
+                } else if (result == OK && target.hits == target.hitsMax) {
+		    creep.debug("Repair OK & target fully healed. Deleteting target from memory, and searching from scratch");
+                    delete creep.memory.target_id;
+		}
             }
 	    }
 	    else {
