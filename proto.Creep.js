@@ -61,4 +61,57 @@ module.exports = function () {
         function() {
             console.log(JSON.stringify(this, null, 2));
         };
+
+    Creep.prototype.findResourceStores =
+        function() {
+	        let targets = this.room.find(FIND_STRUCTURES, {
+                    filter: (structure) => {
+                        return (structure.structureType == STRUCTURE_CONTAINER || structure.structureType == STRUCTURE_STORAGE);
+                    }
+            });
+            this.debug("Found " + targets.length + " energy stores");
+            return targets;
+        };
+
+    Creep.prototype.findNonEmptyEnergyStores =
+        function() {
+            let targets = _.filter(this.findResourceStores(), function(store) {
+                return store.store[RESOURCE_ENERGY] > 0
+            });
+            this.debug("Found " + targets.length + " non-empty energy stores");
+
+            return targets;
+        };
+
+    Creep.prototype.getClosestNonEmptyEnergyStore =
+        function() {
+            let stores = this.findNonEmptyEnergyStores();
+            let target = this.pos.findClosestByPath(stores);
+            this.debug("Found closest energy store: " + target + " @ " + target.pos);
+            return target;
+        };
+
+    Creep.prototype.findConstructionSites =
+        function(room = null) {
+            if (room == null) {
+                room = this.room;
+            }
+            let targets = room.find(FIND_CONSTRUCTION_SITES);
+            //fix the smallest projects first
+            targets = _.sortBy(targets, 'progressTotal');
+            this.debug("Found " + targets.length + " construction sites");
+            return targets;
+        };
+    Creep.prototype.findSmallestConstructionSite =
+        function() {
+            let targets = this.findConstructionSites();
+            targets = _.sortBy(targets, 'progressTotal');
+            if (targets.length > 0) {
+                target = targets[0];
+                this.debug("Found new construction site: " + target + " @ " + target.pos);
+                return target;
+            } else {
+                this.info("No construction sites found");
+            }
+        };
 };
