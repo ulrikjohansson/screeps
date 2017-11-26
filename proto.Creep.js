@@ -14,34 +14,47 @@ var levels = {
     "ERROR": "#ff3333"
 }
 
+var priority = {
+    DEBUG: 1,
+    INFO: 2,
+    WARNING: 3,
+    ERROR: 4
+}
+
 
 module.exports = function () {
-    
+
     Creep.prototype.log =
         function(message, level="INFO") {
             console.log("<span style='color:" + levels[level] + "'>" + level + "</span>: " + this.name + ": " + message);
         };
-        
+
     Creep.prototype.debug =
         function(message) {
             if(this.memory.debug || global.logLevel == "DEBUG") {
                 this.log(message, "DEBUG");
             }
         };
-    
+
     Creep.prototype.info =
         function(message) {
-            this.log(message, "INFO");
+            if(priority[global.logLevel] <= priority["INFO"]) {
+                this.log(message, "INFO");
+            }
         }
-    
+
     Creep.prototype.warning =
         function(message) {
-            this.log(message, "WARNING");
+            if(priority[global.logLevel] <= priority["WARNING"]) {
+                this.log(message, "WARNING");
+            }
         }
 
     Creep.prototype.error =
         function(message) {
-            this.log(message, "ERROR");
+            if(priority[global.logLevel] <= priority["ERROR"]) {
+                this.log(message, "ERROR");
+            }
         }
 
     Creep.prototype.dump =
