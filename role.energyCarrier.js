@@ -17,7 +17,7 @@ var state_lookup = function (state) {
     return state_dict[state];
 }
 
-var roleHarvester = {
+var roleEnergyCarrier = {
 
     creep: null,
 
@@ -336,4 +336,4 @@ var roleHarvester = {
 	}
 };
 
-module.exports = roleHarvester;
+module.exports = roleEnergyCarrier;
