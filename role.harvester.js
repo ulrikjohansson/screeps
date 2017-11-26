@@ -24,7 +24,7 @@ var roleHarvester = {
             console.log("--------------"+ Game.time + "----------------");
             console.log("Harvester " + creep.name + " Mem BEFORE run: " + JSON.stringify(creep.memory));
         }
-        
+
         if (creep.memory.debug) {
             console.log("Harvester " + creep.name + " id: " + creep.id);
             console.log("Harvester " + creep.name + " TTL: " + creep.ticksToLive);
@@ -33,15 +33,15 @@ var roleHarvester = {
             console.log("Harvester " + creep.name + " body: " + JSON.stringify(creep.body));
             console.log("Harvester " + creep.name + " carry: " + JSON.stringify(creep.carry));
             console.log("Harvester " + creep.name + " hits: " + creep.hits);
-            
+
         }
-        
+
         this.creep = creep;
-        
+
         if(!creep.memory.state) {
             creep.memory.state = STATE_SPAWNING;
         }
-        
+
         switch(creep.memory.state) {
             case STATE_SPAWNING:
                 this.runSpawning(creep);
@@ -59,6 +59,13 @@ var roleHarvester = {
 
 	},
 	runSpawning: function (creep) {
+	    if(!creep.memory.target_id) {
+            target = this.findVacantSource(creep);
+            if(target) {
+	            creep.room.memory.sources[target.id] = {"harvester": creep.name};
+	            creep.memory.target_id = target.id;
+            }
+	    }
 	    if(!creep.spawning) {
 	        creep.memory.state = STATE_MOVING_TO_SOURCE;
 	        if(creep.memory.debug) {
@@ -69,9 +76,16 @@ var roleHarvester = {
 	runMoveToSource: function(creep) {
         let target = Game.getObjectById(creep.memory.target_id);
         if(!target) {
-            console.log("<span style='color:red'>No target for "+creep.name+". Clearing memory</span>");
+            creep.warning("In memory target invalid for "+creep.name+". Clearing memory");
             delete creep.memory.target_id;
-            return;
+            target = this.findVacantSource(creep);
+            if(!target) {
+                creep.error("No valid source target found!");
+                return;
+            } else {
+    	        creep.room.memory.sources[target.id] = {"harvester": creep.name};
+	            creep.memory.target_id = target.id;
+            }
         }
         if(creep.memory.debug) {
             console.log("Harvester " + creep.name + ": moving to target > " + JSON.stringify(target));
@@ -102,7 +116,7 @@ var roleHarvester = {
             console.log("Harvester " + creep.name + ": Goals \n" + JSON.stringify(goals, null, 2));
         }
 		goals = _.map(goals, function(source) {
-			// We can't actually walk on sources-- set `range` to 1 
+			// We can't actually walk on sources-- set `range` to 1
 			// so we path next to it.
 			return { pos: source.pos, range: 1 };
 		  });
@@ -120,8 +134,8 @@ var roleHarvester = {
 			  roomCallback: function(roomName) {
 
 				let room = Game.rooms[roomName];
-				// In this example `room` will always exist, but since 
-				// PathFinder supports searches which span multiple rooms 
+				// In this example `room` will always exist, but since
+				// PathFinder supports searches which span multiple rooms
 				// you should be careful!
 				if (!room) return;
 				let costs = new PathFinder.CostMatrix;
@@ -155,7 +169,7 @@ var roleHarvester = {
     },
 	runHarvest: function(creep) {
         let target = Game.getObjectById(creep.memory.target_id);
-        
+
         if(!target) {
             target = creep.pos.findInRange(FIND_SOURCES, 1)[0];
             if(!target) {
@@ -166,7 +180,7 @@ var roleHarvester = {
         }
 
         let result = creep.harvest(target);
-        
+
         switch (result) {
             case ERR_NOT_IN_RANGE:
                 creep.memory.state = STATE_MOVING_TO_SOURCE;
@@ -183,7 +197,54 @@ var roleHarvester = {
                 }
                 return;
         }
-	}
+	},
+    findRelevantSources: function (creep) {
+        var sources =  creep.room.find(FIND_SOURCES, {filter: function(object) {
+            let flags = object.pos.lookFor(LOOK_FLAGS);
+            if(flags.length == 1 && flags[0].color == COLOR_RED) {
+                return false;
+            }
+            return true;
+        }});
+        //console.log(JSON.stringify(sources, null, 2));
+        if(!creep.room.memory.sources) {
+            creep.room.memory.sources = {};
+        }
+        _.forEach(sources, function(source) {
+            //console.log(JSON.stringify(source, null, 2));
+            if (!creep.room.memory.sources[source.id]) {
+                creep.room.memory.sources[source.id] = {};
+            }
+        });
+
+        //cleanup irrelevant sources from memory (TODO: do we need to scrub the harvesters memory of this source as well?)
+        let list_of_source_ids = _.pluck(sources, 'id');
+        _.forEach(creep.room.memory.sources, function(source_in_mem, key) {
+            if(!_.includes(list_of_source_ids, key)) {
+                console.log("deleting: " + key);
+                delete creep.room.memory.sources[key];
+            }
+        });
+
+
+        return sources;
+    },
+    findVacantSource: function (creep) {
+        let mem_sources =  creep.room.memory.sources;
+        if(!mem_sources) {
+            this.findRelevantSources(creep);
+        }
+        //console.log("mem_sources: " + JSON.stringify(mem_sources));
+        let vacantSource =_.findKey(mem_sources, function(source) {
+            //console.log("mem source: " + JSON.stringify(source));
+            return (
+                !source.harvester ||
+                (source.harvester && !Game.creeps[source.harvester])
+            );
+        });
+        //console.log("vacant_source: " + JSON.stringify(vacantSource, null, 2));
+        return Game.getObjectById(vacantSource);
+    }
 };
 
 module.exports = roleHarvester;
