@@ -10,13 +10,13 @@ var structureTower = {
     
     run: function (tower) {
 
-        var damagedStructures = tower.pos.findInRange(FIND_STRUCTURES, 10, {
+        var damagedStructures = tower.pos.findInRange(FIND_STRUCTURES, 20, {
             filter: (structure) => structure.hits < structure.hitsMax
         });
         
         let sortedDamagedStructures = _.sortBy(damagedStructures, 'hits');
         let mostDamagedStructure = sortedDamagedStructures[0];
-        if(mostDamagedStructure && (mostDamagedStructure.hits < 1000 || Game.time % 20 == 0)) {
+        if(mostDamagedStructure && (mostDamagedStructure.hits < 2000 || Game.time % 20 == 0)) {
             tower.repair(mostDamagedStructure);
         }
 
