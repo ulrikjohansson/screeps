@@ -1,4 +1,4 @@
-var logLevel = "INFO";
+global.logLevel = "INFO";
 
 require('proto.Creep')();
 

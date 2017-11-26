@@ -24,7 +24,7 @@ module.exports = function () {
         
     Creep.prototype.debug =
         function(message) {
-            if(this.memory.debug) {
+            if(this.memory.debug || global.logLevel == "DEBUG") {
                 this.log(message, "DEBUG");
             }
         };
