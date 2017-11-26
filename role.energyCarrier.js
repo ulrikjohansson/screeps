@@ -48,10 +48,10 @@ var roleHarvester = {
                 this.runSpawning(creep);
                 break;
             case STATE_MOVING_TO_SOURCE:
-                this.runMoveToSource(creep);
+                this.runMoveToPickup(creep);
                 break;
             case STATE_HARVESTING:
-                this.runHarvest(creep);
+                this.runPickup(creep);
                 break;
             case STATE_MOVING_TO_DEPOSIT:
                 this.runMoveToDeposit(creep);
@@ -69,60 +69,44 @@ var roleHarvester = {
             creep.debug("new state {" + state_lookup(creep.memory.state) + "]");
 	    }
 	},
-	runMoveToSource: function(creep) {
-	    var target = null;
-	    if(creep.memory.source_target_pos) {
-	        let mempos = creep.memory.source_target_pos;
-            creep.debug("mempos: " + JSON.stringify(mempos));
-            creep.debug("x:" + mempos["x"] + " y:" + mempos["y"] + " roomName:" + mempos["roomName"]);
-
-	        let target_list = creep.room.lookForAt(LOOK_ENERGY, new RoomPosition(mempos.x, mempos.y, mempos.roomName));
-            creep.debug("Target list from mem pos " + JSON.stringify(target_list, ["pos", "x", "y", "energy"]));
-
-	        if (target_list.length > 0) {
-	            target = target_list[0];
-	            creep.debug("Harvester " + creep.name + ": using target " + JSON.stringify(target, ["pos", "x", "y", "energy"]));
-	        } else {
-	            creep.debug("Harvester " + creep.name + ": no target found from mempos");
+	runMoveToPickup: function(creep, target = null) {
+	    //override default target or memorized target
+	    if(target) {
+	        if(target instanceof Resource) {
+	            creep.memory.source_target_pos = target.pos;
+	            delete creep.memory.target_id;
 	        }
+	        if(target instanceof Structure || target instanceof Source) {
+	            creep.memory.target_id = target.id;
+	            delete creep.memory.source_target_pos;
+	        }
+	    } else if (creep.memory.target_id || creep.memory.source_target_pos){
+	        if(creep.memory.target_id) {
+	            target = Game.getObjectById(creep.memory.target_id);
+	        }
+	        if(creep.memory.source_target_pos) {
+    	        let mempos = creep.memory.source_target_pos;
+                creep.debug("mempos: " + JSON.stringify(mempos));
+                creep.debug("x:" + mempos["x"] + " y:" + mempos["y"] + " roomName:" + mempos["roomName"]);
+
+    	        let target_list = creep.room.lookForAt(LOOK_ENERGY, new RoomPosition(mempos.x, mempos.y, mempos.roomName));
+                creep.debug("Target list from mem pos " + JSON.stringify(target_list, ["pos", "x", "y", "energy"]));
+
+    	        if (target_list.length > 0) {
+    	            target = target_list[0];
+    	            creep.debug("Harvester " + creep.name + ": using target " + JSON.stringify(target, ["pos", "x", "y", "energy"]));
+    	        } else {
+    	            creep.debug("Harvester " + creep.name + ": no target found from mempos");
+    	        }
+	        }
+	    } else {
+	        target = this.getDefaultPickupTarget(creep);
 	    }
 
-	    if(!target) {
-    	    const targets = creep.room.find(FIND_DROPPED_ENERGY, {filter: function(resource) {
-    	        return resource.amount >= creep.carryCapacity / 2 && resource.pos.findInRange(FIND_FLAGS, 1).length == 0;
-
-    	    }});
-
-    	    if(targets.length == 0) {
-    	        creep.warning("No dropped energy targets found!");
-    	        return;
-    	    }
-
-            creep.debug("Harvester " + creep.name + ": found "+targets.length+" energy targets");
-
-
-            let queue = tinyqueue([], function(a,b) {
-                return (a.cost - b.cost);
-            });
-            for (let i in targets) {
-                let target = targets[i];
-                let cost = (creep.pos.getRangeTo(target) - _.max([target.amount / 2, creep.carryCapacity]));
-                let object = {cost: cost, target: target};
-                queue.push(object);
-            }
-
-            let target_object = queue.peek();
-            creep.debug("Target list:\n" + JSON.stringify(queue.data, ["target", "pos", "x", "y", "energy"], 2));
-            target = target_object.target;
-            creep.debug("Using target " + JSON.stringify(target, ["pos", "x", "y", "energy"]));
-            creep.memory.source_target_pos = target.pos;
-	    }
-
-	    //const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
         if(target) {
             if(creep.pos.inRangeTo(target, 1)) {
                 creep.memory.state = STATE_HARVESTING;
-                this.runHarvest(creep, target);
+                this.runPickup(creep, target);
                 return;
             }
             creep.debug("Target pos > " + JSON.stringify(target.pos));
@@ -133,7 +117,7 @@ var roleHarvester = {
             creep.debug("No energy source to target!");
         }
 	},
-	runHarvest: function(creep, target) {
+	runPickup: function(creep, target) {
 	    if (!target) {
             const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
 	    }
@@ -141,7 +125,7 @@ var roleHarvester = {
         if(!target) {
             creep.info("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "}");
             creep.memory.state = STATE_MOVING_TO_SOURCE;
-            this.runMoveToSource(creep);
+            this.runMoveToPickup(creep);
             return;
         }
 
@@ -313,6 +297,42 @@ var roleHarvester = {
 	    }
 
 	    return flag[0];
+	},
+	getDefaultPickupTarget: function(creep) {
+	    const targets = creep.room.find(FIND_DROPPED_ENERGY, {filter: function(resource) {
+	        return resource.amount >= creep.carryCapacity / 2 && resource.pos.findInRange(FIND_FLAGS, 1).length == 0;
+
+	    }});
+
+	    if(targets.length == 0) {
+	        creep.warning("No dropped energy targets found!");
+	        return;
+	    }
+
+        creep.debug("Harvester " + creep.name + ": found "+targets.length+" energy targets");
+
+
+        let queue = tinyqueue([], function(a,b) {
+            return (a.cost - b.cost);
+        });
+        for (let i in targets) {
+            let target = targets[i];
+            let cost = (creep.pos.getRangeTo(target) - _.max([target.amount / 2, creep.carryCapacity]));
+            let object = {cost: cost, target: target};
+            queue.push(object);
+        }
+
+        let target_object = queue.peek();
+        creep.debug("Target list:\n" + JSON.stringify(queue.data, ["target", "pos", "x", "y", "energy"], 2));
+        if(target_object) {
+            target = target_object.target;
+            creep.debug("Using target " + target + " @ " + target.pos);
+            creep.memory.source_target_pos = target.pos;
+            delete creep.memory.target_id;
+            return target;
+        } {
+            creep.info("No pickup targets found.");
+        }
 	}
 };
 
