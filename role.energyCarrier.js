@@ -38,11 +38,11 @@ var roleHarvester = {
         );
 
         this.creep = creep;
-        
+
         if(!creep.memory.state) {
             creep.memory.state = STATE_SPAWNING;
         }
-        
+
         switch(creep.memory.state) {
             case STATE_SPAWNING:
                 this.runSpawning(creep);
@@ -90,17 +90,17 @@ var roleHarvester = {
 	    if(!target) {
     	    const targets = creep.room.find(FIND_DROPPED_ENERGY, {filter: function(resource) {
     	        return resource.amount >= creep.carryCapacity / 2 && resource.pos.findInRange(FIND_FLAGS, 1).length == 0;
-    	        
+
     	    }});
-    	    
+
     	    if(targets.length == 0) {
     	        creep.warning("No dropped energy targets found!");
     	        return;
     	    }
-    
+
             creep.debug("Harvester " + creep.name + ": found "+targets.length+" energy targets");
 
-    
+
             let queue = tinyqueue([], function(a,b) {
                 return (a.cost - b.cost);
             });
@@ -110,7 +110,7 @@ var roleHarvester = {
                 let object = {cost: cost, target: target};
                 queue.push(object);
             }
-            
+
             let target_object = queue.peek();
             creep.debug("Target list:\n" + JSON.stringify(queue.data, ["target", "pos", "x", "y", "energy"], 2));
             target = target_object.target;
@@ -137,7 +137,7 @@ var roleHarvester = {
 	    if (!target) {
             const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
 	    }
-        
+
         if(!target) {
             creep.info("Harvester " + creep.name + ": new state {" + state_lookup(creep.memory.state) + "}");
             creep.memory.state = STATE_MOVING_TO_SOURCE;
@@ -146,7 +146,7 @@ var roleHarvester = {
         }
 
         let result = creep.pickup(target);
-        
+
         switch (result) {
             case OK:
             case ERR_INVALID_TARGET:
@@ -155,17 +155,17 @@ var roleHarvester = {
                 creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
                 return;
         }
-        
+
         if(_.sum(creep.carry) >= creep.carryCapacity * 0.75 ) {
             creep.memory.state = STATE_MOVING_TO_DEPOSIT;
             creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
         }
-        
+
 	},
 	findDepositTarget: function (creep) {
         var targets = creep.room.find(FIND_STRUCTURES, {
                 filter: (structure) => {
-                    return ((structure.structureType == STRUCTURE_SPAWN || structure.structureType == STRUCTURE_EXTENSION || (structure.structureType == STRUCTURE_TOWER && structure.energy / structure.energyCapacity > 0.85)) &&
+                    return ((structure.structureType == STRUCTURE_SPAWN || structure.structureType == STRUCTURE_EXTENSION || (structure.structureType == STRUCTURE_TOWER && structure.energy / structure.energyCapacity < 0.85)) &&
                         (structure.energy < structure.energyCapacity) || ((structure.structureType == STRUCTURE_CONTAINER || structure.structureType == STRUCTURE_STORAGE) && structure.store[RESOURCE_ENERGY] < structure.storeCapacity));
                 }
         });
@@ -173,8 +173,8 @@ var roleHarvester = {
         if(targets.length > 0) {
             //give priority to spawns & extensions
             const priorities = {
-                spawn: 1,
-                extension: 1,
+                spawn: 2,
+                extension: 3,
                 tower: 1,
                 container: 10,
                 storage: 10,
@@ -185,14 +185,14 @@ var roleHarvester = {
             for (let i in targets) {
                 queue.push(targets[i]);
             }
-            
+
             var target = queue.peek();
         } else {
             creep.warning("No regular deposit targets for carrier!");
             var target = null;
             return;
         }
-        
+
         return target;
 	},
 	depositTargetUseful: function(target) {
@@ -208,7 +208,7 @@ var roleHarvester = {
 	    }
 	},
 	runMoveToDeposit: function (creep) {
-	    
+
 	    let target = null;
 	    if(creep.memory.target_id) {
             try {
@@ -220,7 +220,7 @@ var roleHarvester = {
             }
             creep.debug("Got target from memory target_id="+creep.memory.target_id+": " + JSON.stringify(target));
 	    }
-	    
+
 	    if(
 	        !target ||
 	        (target && !this.depositTargetUseful(target))
@@ -244,7 +244,7 @@ var roleHarvester = {
         }
 
         creep.moveTo(target, {visualizePathStyle: {stroke: '#ffffff'}});
-    
+
         //stop moving if we're in range
         creep.debug("In range to "+target.pos+"?: " + JSON.stringify(creep.pos.inRangeTo(target, 1)));
         if(creep.pos.inRangeTo(target, 1)) {
@@ -267,7 +267,7 @@ var roleHarvester = {
             creep.debug("Dropping energy near " + target.name);
             result = creep.drop(RESOURCE_ENERGY);
         }
-        
+
         creep.debug("Offload result: " + result);
 
         switch (result) {
@@ -287,7 +287,7 @@ var roleHarvester = {
                 creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
                 return;
         }
-        
+
         if(creep.carry[RESOURCE_ENERGY] == 0) {
             creep.memory.state = STATE_MOVING_TO_SOURCE;
             creep.memory.target_id = null;
@@ -311,7 +311,7 @@ var roleHarvester = {
 	            return;
 	        }
 	    }
-	    
+
 	    return flag[0];
 	}
 };
