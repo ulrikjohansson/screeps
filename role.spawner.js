@@ -8,17 +8,18 @@ var level7Generic = {"price": 550, "parts": [WORK, WORK, WORK, CARRY, CARRY, MOV
 var level8Generic = {"price": 650, "parts": [WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
 var level9Generic = {"price": 700, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
 var level10Generic = {"price": 750, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
-var level11Generic = {"price": 800, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
-var level12Generic = {"price": 850, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
-var level13Generic = {"price": 850, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE]};
+var level11Generic = {"price": 800, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
+var level12Generic = {"price": 850, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
+var level13Generic = {"price": 900, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
 
 var level1Carrier = {"price": 300,"parts": [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
 var level2Carrier = {"price": 350,"parts": [CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
+var level3Carrier = {"price": 550,"parts": [CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
 
 var level1Harvester = {"price": 300,"parts": [WORK, WORK, MOVE, MOVE]};
 var level2Harvester = {"price": 350,"parts": [WORK, WORK, WORK, MOVE]};
 var level3Harvester = {"price": 450,"parts": [WORK, WORK, WORK, WORK, MOVE]};
-var level4Harvester = {"price": 550,"parts": [WORK, WORK, WORK, WORK, WORK, MOVE]};
+var level4Harvester = {"price": 600,"parts": [WORK, WORK, WORK, WORK, WORK, MOVE, MOVE]};
 
 function extend(obj, src) {
     for (var key in src) {
@@ -47,7 +48,8 @@ var roleSpawner = {
             ],
             "carrier": [
                 level1Carrier,
-                level2Carrier
+                level2Carrier,
+                level3Carrier
             ],
             "harvester": [
                 level1Harvester,
@@ -59,7 +61,7 @@ var roleSpawner = {
         //get available energy
         var available_energy = spawn.room.energyAvailable;
         var possible_energy = spawn.room.energyCapacityAvailable;
-        
+
         //get highest blueprint possible to make with current total capacity
         let blueprint_list = [];
         if (creep_type in blueprints) {
@@ -70,7 +72,7 @@ var roleSpawner = {
         var enough_energy = (available_energy == possible_energy || available_energy >= _.last(blueprint_list).price);
         if(enough_energy) {
             var possible_blueprints = _.filter(blueprint_list, function (bp) { return bp.price <= available_energy });
-    
+
             if(possible_blueprints.length > 0) {
                 let blueprint = possible_blueprints[possible_blueprints.length - 1];
                 let body = blueprint.parts;
@@ -104,7 +106,7 @@ var roleSpawner = {
                 spawn.room.memory.sources[source.id] = {};
             }
         });
-        
+
         //cleanup irrelevant sources from memory (TODO: do we need to scrub the harvesters memory of this source as well?)
         let list_of_source_ids = _.pluck(sources, 'id');
         _.forEach(spawn.room.memory.sources, function(source_in_mem, key) {
@@ -113,7 +115,7 @@ var roleSpawner = {
                 delete spawn.room.memory.sources[key];
             }
         });
-        
+
 
         return sources;
     },
@@ -123,7 +125,7 @@ var roleSpawner = {
         let vacantSource =_.findKey(mem_sources, function(source) {
             //console.log("mem source: " + JSON.stringify(source));
             return (
-                !source.harvester || 
+                !source.harvester ||
                 (source.harvester && !Game.creeps[source.harvester])
             );
         });
@@ -131,7 +133,7 @@ var roleSpawner = {
         return Game.getObjectById(vacantSource);
     },
     run: function(spawn) {
-        
+
         var harvesters = _.filter(Game.creeps, (creep) => creep.memory.role == 'harvester');
         var carriers = _.filter(Game.creeps, (creep) => creep.memory.role == 'carrier');
         var builders = _.filter(Game.creeps, (creep) => creep.memory.role == 'builder');
@@ -148,14 +150,14 @@ var roleSpawner = {
         //Find and update source in memory
         let sources = this.findRelevantSources(spawn);
         let num_sources = sources.length;
-        
-        
+
+
         let vacant_source = this.findVacantSource(spawn);
 
         //create simple harvester creeps
-        
-        
-        
+
+
+
         if (carriers.length < harvesters.length) {
             this.spawnBiggestPossible(spawn, 'carrier');
         }
@@ -170,13 +172,16 @@ var roleSpawner = {
                 //console.log(JSON.stringify(spawn.room.memory.sources[vacant_source.id], null, 2));
             }
         }
+        else if (carriers.length < 3 && spawn.room.energyAvailable > 600) {
+            this.spawnBiggestPossible(spawn, 'carrier');
+        }
         //create simple upgrader creeps
-        else if (upgraders.length < 1 || (upgraders.length < 2 && spawn.room.energyAvailable > 500)) {
+        else if (upgraders.length < 1 || (upgraders.length < 1 && spawn.room.energyAvailable > 500)) {
             this.spawnBiggestPossible(spawn, 'upgrader');
         }
         //create simple builder creeps
         else if (
-            (builders.length < 1 || (builders.length < 3 && spawn.room.energyAvailable > 500)) && this.needForBuilder(spawn)
+            (builders.length < 1 || (builders.length < 1 && spawn.room.energyAvailable > 500)) && this.needForBuilder(spawn)
             && Game.time % 20 == 0) {
             this.spawnBiggestPossible(spawn, 'builder');
         }
