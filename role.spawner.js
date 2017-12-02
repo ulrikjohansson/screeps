@@ -62,6 +62,7 @@ var roleSpawner = {
         var available_energy = spawn.room.energyAvailable;
         var possible_energy = spawn.room.energyCapacityAvailable;
 
+
         //get highest blueprint possible to make with current total capacity
         let blueprint_list = [];
         if (creep_type in blueprints) {
@@ -70,7 +71,7 @@ var roleSpawner = {
             blueprint_list = blueprints["generic"];
         }
         var enough_energy = (available_energy == possible_energy || available_energy >= _.last(blueprint_list).price);
-        if(enough_energy) {
+        if(enough_energy || Memory.stats[creep_type] < 1) {
             var possible_blueprints = _.filter(blueprint_list, function (bp) { return bp.price <= available_energy });
 
             if(possible_blueprints.length > 0) {
@@ -81,6 +82,8 @@ var roleSpawner = {
                 let result = spawn.spawnCreep(body, name, {"memory": memory});
                 console.log(creep_type + " spawn result: " + result + " using plan: " + JSON.stringify(body));
                 return name;
+            } else {
+                console.log("No possible blueprints for " + creep_type);
             }
         }
     },
@@ -140,11 +143,11 @@ var roleSpawner = {
         var upgraders = _.filter(Game.creeps, (creep) => creep.memory.role == 'upgrader');
         var repairers = _.filter(Game.creeps, (creep) => creep.memory.role == 'repairer');
         Memory.stats = {
-            "harvesters": harvesters.length,
-            "carriers": carriers.length,
-            "builders": builders.length,
-            "upgraders": upgraders.length,
-            "repairers": repairers.length
+            "harvester": harvesters.length,
+            "carrier": carriers.length,
+            "builder": builders.length,
+            "upgrader": upgraders.length,
+            "repairer": repairers.length
         };
 
         //Find and update source in memory
