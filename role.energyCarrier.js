@@ -116,13 +116,12 @@ var roleEnergyCarrier = {
                 return;
             }
             creep.debug("Target pos > " + JSON.stringify(target.pos));
-            let result = creep.moveTo(target, {visualizePathStyle: {
-                fill: 'transparent',
-                stroke: '#7ff',
-                lineStyle: 'dashed',
-                strokeWidth: .15,
-                opacity: .75
-            }});
+            let pathStyle = {};
+            if (creep.getLogLevel() == "DEBUG") {
+                pathStyle = {stroke: '#7ff', opacity:0.75};
+            }
+
+            let result = creep.moveTo(target, {visualizePathStyle: pathStyle});
             creep.debug("Move result > "+ result);
 
         } else {
@@ -184,32 +183,23 @@ var roleEnergyCarrier = {
         if(targets.length > 0) {
             //give priority to spawns & extensions. Lower prio is more important
             const priorities = {
-                spawn: 2,
-                extension: 3,
-                tower: 1,
-                container: 10,
-                storage: 10,
+                'spawn': 2,
+                'extension': 3,
+                'tower': 1,
+                'container': 10,
+                'storage': 10,
             };
 
-            let prio_groups = {};
-            for(let i in targets) {
-                if(!prio_groups[priorities[targets[i].structureType]]) {
-                    prio_groups[priorities[targets[i].structureType]] = [];
-                }
-                prio_groups[priorities[targets[i].structureType]].push(targets[i]);
-            }
-            prio_groups = _.sortBy(prio_groups, function(value, key) {
-                return key;
-            });
-
             let queue = tinyqueue([], function(a,b) {
-                return (creep.pos.getRangeTo(a) - creep.pos.getRangeTo(b));
+                return (creep.pos.getRangeTo(a) + priorities[a.structureType] * 100) - (creep.pos.getRangeTo(b) +  + priorities[b.structureType] * 100);
             });
-            for (let i in prio_groups[0]) {
+            for (let i in targets) {
                 queue.push(targets[i]);
             }
 
             var target = queue.peek();
+            
+            creep.debug("prio queue:\n" + JSON.stringify(queue.data, null, 2));
         } else {
             creep.warning("No regular deposit targets for carrier!");
             var target = null;
@@ -266,7 +256,11 @@ var roleEnergyCarrier = {
 	        }
         }
 
-        creep.moveTo(target, {visualizePathStyle: {stroke: '#ff7', opacity:0.75}});
+        let pathStyle = {};
+        if (creep.getLogLevel() == "DEBUG") {
+            pathStyle = {stroke: '#ff7', opacity:0.75};
+        }
+        creep.moveTo(target, {visualizePathStyle: pathStyle});
 
         //stop moving if we're in range
         creep.debug("In range to "+target.pos+"?: " + JSON.stringify(creep.pos.inRangeTo(target, 1)));
@@ -377,8 +371,11 @@ var roleEnergyCarrier = {
 
         creep.debug("Target list:\n" + JSON.stringify(queue.data, ["target", "pos", "x", "y", "energy", "cost", "range"], 2));
         let target_object = queue.peek();
-
-        return target_object.target;
+        if (target_object) {
+            return target_object.target;
+        }
+        
+        creep.warning("No target found!");
 	}
 };
 
