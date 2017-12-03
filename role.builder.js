@@ -43,14 +43,14 @@ var roleBuilder = {
                 creep.memory.state = STATE_SPAWNING;
                 break;
         }
-	},
-	runSpawning: function (creep) {
-	    if(!creep.spawning) {
-	        creep.memory.state = STATE_MOVING_TO_ENERGY_STORE;
+    },
+    runSpawning: function (creep) {
+        if(!creep.spawning) {
+            creep.memory.state = STATE_MOVING_TO_ENERGY_STORE;
             creep.debug("new state {" + state_lookup(creep.memory.state) + "}");
-	    }
-	},
-	runMoveToEnergyStore: function(creep) {
+        }
+    },
+    runMoveToEnergyStore: function(creep) {
         let target = creep.getClosestNonEmptyEnergyStore();
         if (target) {
             let results = creep.withdraw(target, RESOURCE_ENERGY);
@@ -58,7 +58,7 @@ var roleBuilder = {
                 creep.moveTo(target, {visualizePathStyle: {stroke: '#ffaa00'}});
             }
         } else {
-    	    target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+            target = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES);
             if(target) {
                 if(creep.pos.inRangeTo(target, 1)) {
                     creep.memory.state = STATE_FILLING_UP_ENERGY;
@@ -73,11 +73,11 @@ var roleBuilder = {
             creep.memory.state = STATE_MOVING_TO_CONSTRUCTION_SITE;
             creep.debug("new state {" + state_lookup(creep.memory.state) + "}");
         }
-	},
-	runPickup: function(creep, target) {
-	    if (!target) {
-            const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
-	    }
+    },
+    runPickup: function(creep, target) {
+        if (!target) {
+            const target = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES);
+        }
 
         if(!target) {
             return;
@@ -107,7 +107,7 @@ var roleBuilder = {
                 creep.info("No construction sites found. Waiting...");
                 return;
             }
-	    }
+        }
 
         if(target) {
             if(creep.pos.inRangeTo(target, 1)) {
@@ -123,9 +123,9 @@ var roleBuilder = {
         } else {
             creep.info("No target construction site found");
         }
-	},
-	runConstruct: function(creep) {
-	    let target = Game.getObjectById(creep.memory.target_id);
+    },
+    runConstruct: function(creep) {
+        let target = Game.getObjectById(creep.memory.target_id);
         let result = creep.build(target);
         creep.debug("Build result: " + result);
         if (result == ERR_INVALID_TARGET) {
@@ -138,7 +138,7 @@ var roleBuilder = {
             delete creep.memory.target_id;
             creep.memory.state = STATE_MOVING_TO_ENERGY_STORE;
         }
-	}
+    }
 };
 
 module.exports = roleBuilder;

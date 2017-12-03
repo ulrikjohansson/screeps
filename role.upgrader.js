@@ -29,24 +29,24 @@ var roleUpgrader = {
                     creep.moveTo(targets[targets.length -1], {visualizePathStyle: {stroke: '#ffaa00'}});
                 }
             } else {
-        	    const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+        	    const target = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES);
                 if(target) {
                     if(creep.pos.inRangeTo(target, 1)) {
                         this.runPickup(creep, target);
                         return;
                     }
                     creep.moveTo(target, {visualizePathStyle: {stroke: '#ffaa00'}});
-                    
+
                 }
-                
+
             }
         }
 	},
 	runPickup: function(creep, target) {
 	    if (!target) {
-            const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+            const target = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES);
 	    }
-        
+
         if(!target) {
             return;
         }

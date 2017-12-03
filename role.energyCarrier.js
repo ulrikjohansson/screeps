@@ -34,7 +34,7 @@ var roleEnergyCarrier = {
                 "carry": creep.carry,
                 "capacity": creep.carryCapacity,
                 "hits": creep.hits
-            }, null, 2)
+            })
         );
 
         this.creep = creep;
@@ -116,7 +116,13 @@ var roleEnergyCarrier = {
                 return;
             }
             creep.debug("Target pos > " + JSON.stringify(target.pos));
-            let result = creep.moveTo(target);
+            let result = creep.moveTo(target, {visualizePathStyle: {
+                fill: 'transparent',
+                stroke: '#7ff',
+                lineStyle: 'dashed',
+                strokeWidth: .15,
+                opacity: .75
+            }});
             creep.debug("Move result > "+ result);
 
         } else {
@@ -124,8 +130,11 @@ var roleEnergyCarrier = {
         }
 	},
 	runPickup: function(creep, target) {
+	    if (creep.memory.target_id) {
+	        const target = Game.getObjectById(creep.memory.target_id);
+	    }
 	    if (!target) {
-            const target = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
+            const target = creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES);
 	    }
 
         if(!target) {
@@ -135,9 +144,18 @@ var roleEnergyCarrier = {
             return;
         }
 
-        let result = creep.pickup(target);
+        //Do whats reasonable for the target
+        let result = null;
+        if(_.get(target, 'structureType', null)) {
+            result = creep.withdraw(target, RESOURCE_ENERGY);
+        } else if (_.get(target, 'resourceType', null)) {
+            result = creep.pickup(target);
+        }
 
         switch (result) {
+            case ERR_TIRED:
+                creep.say("Fatigue");
+                break;
             case OK:
             case ERR_INVALID_TARGET:
             case ERR_NOT_IN_RANGE:
@@ -148,10 +166,12 @@ var roleEnergyCarrier = {
 
         if(_.sum(creep.carry) >= creep.carryCapacity * 0.75 ) {
             creep.memory.state = STATE_MOVING_TO_DEPOSIT;
+            delete creep.memory.target_id;
             creep.debug("New state {" + state_lookup(creep.memory.state) + "]");
         }
 
 	},
+	//TODO: This isn't working for extension targets. All carriers try to deposit at the same target all the time.
 	findDepositTarget: function (creep) {
         var targets = creep.room.find(FIND_STRUCTURES, {
                 filter: (structure) => {
@@ -160,8 +180,9 @@ var roleEnergyCarrier = {
                 }
         });
 
+        //Prioritise first by structureType and then by distance to it.
         if(targets.length > 0) {
-            //give priority to spawns & extensions
+            //give priority to spawns & extensions. Lower prio is more important
             const priorities = {
                 spawn: 2,
                 extension: 3,
@@ -169,10 +190,22 @@ var roleEnergyCarrier = {
                 container: 10,
                 storage: 10,
             };
-            let queue = tinyqueue([], function(a,b) {
-                return (Math.floor(priorities[a.structureType] + Math.random() * 8)) - (Math.floor(priorities[b.structureType] + Math.random() * 8));
+
+            let prio_groups = {};
+            for(let i in targets) {
+                if(!prio_groups[priorities[targets[i].structureType]]) {
+                    prio_groups[priorities[targets[i].structureType]] = [];
+                }
+                prio_groups[priorities[targets[i].structureType]].push(targets[i]);
+            }
+            prio_groups = _.sortBy(prio_groups, function(value, key) {
+                return key;
             });
-            for (let i in targets) {
+
+            let queue = tinyqueue([], function(a,b) {
+                return (creep.pos.getRangeTo(a) - creep.pos.getRangeTo(b));
+            });
+            for (let i in prio_groups[0]) {
                 queue.push(targets[i]);
             }
 
@@ -233,7 +266,7 @@ var roleEnergyCarrier = {
 	        }
         }
 
-        creep.moveTo(target, {visualizePathStyle: {stroke: '#ffffff'}});
+        creep.moveTo(target, {visualizePathStyle: {stroke: '#ff7', opacity:0.75}});
 
         //stop moving if we're in range
         creep.debug("In range to "+target.pos+"?: " + JSON.stringify(creep.pos.inRangeTo(target, 1)));
@@ -305,11 +338,20 @@ var roleEnergyCarrier = {
 	    return flag[0];
 	},
 	getDefaultPickupTarget: function(creep) {
-	    const targets = creep.room.find(FIND_DROPPED_ENERGY, {filter: function(resource) {
-	        return resource.amount >= creep.carryCapacity / 2 && resource.pos.findInRange(FIND_FLAGS, 1).length == 0;
+	    const goal_target = this.findDepositTarget(creep);
+	    const targets = creep.findAnyEnergy();
+	    let target = this.filterBestEnergyTarget(creep, goal_target, targets);
 
-	    }});
-
+        if(target) {
+            creep.debug("Using target " + target + " @ " + target.pos);
+            creep.memory.target_id = target.id;
+            delete creep.memory.source_target_pos;
+            return target;
+        } else {
+            creep.info("No pickup targets found.");
+        }
+	},
+	filterBestEnergyTarget: function(creep, goal, targets) {
 	    if(targets.length == 0) {
 	        creep.warning("No dropped energy targets found!");
 	        return;
@@ -322,23 +364,21 @@ var roleEnergyCarrier = {
             return (a.cost - b.cost);
         });
         for (let i in targets) {
+            if (targets[i].id == goal.id) {
+                continue; //no sense in goal and target being the same object
+            }
+
             let target = targets[i];
-            let cost = (creep.pos.getRangeTo(target) - _.max([target.amount / 2, creep.carryCapacity]));
-            let object = {cost: cost, target: target};
+            let t_range = goal.pos.getRangeTo(target);
+            let cost = (t_range - _.min([target.amount, creep.carryCapacity]));
+            let object = {cost: cost, target: target, range: t_range};
             queue.push(object);
         }
 
+        creep.debug("Target list:\n" + JSON.stringify(queue.data, ["target", "pos", "x", "y", "energy", "cost", "range"], 2));
         let target_object = queue.peek();
-        creep.debug("Target list:\n" + JSON.stringify(queue.data, ["target", "pos", "x", "y", "energy"], 2));
-        if(target_object) {
-            target = target_object.target;
-            creep.debug("Using target " + target + " @ " + target.pos);
-            creep.memory.source_target_pos = target.pos;
-            delete creep.memory.target_id;
-            return target;
-        } {
-            creep.info("No pickup targets found.");
-        }
+
+        return target_object.target;
 	}
 };
 

@@ -118,4 +118,21 @@ module.exports = function () {
                 this.info("No construction sites found");
             }
         };
+
+    Creep.prototype.findAllDroppedEnergy =
+        function() {
+            self = this;
+    	    const targets = this.room.find(FIND_DROPPED_RESOURCES, {filter: function(resource) {
+                return resource.resourceType == RESOURCE_ENERGY && resource.amount >= self.carryCapacity * 0.75 && resource.pos.findInRange(FIND_FLAGS, 1).length == 0;
+	        }});
+
+	        return targets;
+        }
+
+    Creep.prototype.findAnyEnergy =
+        function() {
+            let dropped_energy = this.findAllDroppedEnergy();
+            let stored_energy = this.findNonEmptyEnergyStores();
+            return _.union(dropped_energy, stored_energy);
+        }
 };

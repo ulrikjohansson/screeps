@@ -1,5 +1,6 @@
 var tinyqueue = require('tinyqueue');
 
+var level1Generic = {"price": 200,"parts": [WORK, CARRY, MOVE]};
 var level2Generic = {"price": 300,"parts": [WORK, CARRY, CARRY, MOVE, MOVE]};
 var level4Generic = {"price": 400, "parts": [WORK, WORK, CARRY, CARRY, MOVE, MOVE]};
 var level5Generic = {"price": 450, "parts": [WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE]};
@@ -12,6 +13,7 @@ var level11Generic = {"price": 800, "parts": [WORK, WORK, WORK, WORK, CARRY, CAR
 var level12Generic = {"price": 850, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
 var level13Generic = {"price": 900, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
 
+var level0Carrier = {"price": 200,"parts": [CARRY, CARRY, CARRY, MOVE]};
 var level1Carrier = {"price": 300,"parts": [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
 var level2Carrier = {"price": 350,"parts": [CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
 var level3Carrier = {"price": 550,"parts": [CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
@@ -34,6 +36,7 @@ var roleSpawner = {
     spawnBiggestPossible: function(spawn, creep_type, extra_memory = {}) {
         var blueprints = {
             "generic": [
+                level1Generic,
                 level2Generic,
                 level4Generic,
                 level5Generic,
@@ -47,6 +50,7 @@ var roleSpawner = {
                 level13Generic
             ],
             "carrier": [
+                level0Carrier,
                 level1Carrier,
                 level2Carrier,
                 level3Carrier
@@ -70,7 +74,8 @@ var roleSpawner = {
         } else {
             blueprint_list = blueprints["generic"];
         }
-        var enough_energy = (available_energy == possible_energy || available_energy >= _.last(blueprint_list).price);
+        //TODO: Need to rethink this spawn priority system completely, this is very inflexible.
+        var enough_energy = (available_energy == possible_energy || available_energy >= _.first(blueprint_list).price);
         if(enough_energy || Memory.stats[creep_type] < 1) {
             var possible_blueprints = _.filter(blueprint_list, function (bp) { return bp.price <= available_energy });
 
@@ -179,12 +184,12 @@ var roleSpawner = {
             this.spawnBiggestPossible(spawn, 'carrier');
         }
         //create simple upgrader creeps
-        else if (upgraders.length < 1 || (upgraders.length < 1 && spawn.room.energyAvailable > 500)) {
+        else if (upgraders.length < 1 || (upgraders.length < 3 && spawn.room.energyAvailable > 500 && this.totalEnergyInStores(spawn) > 10000)) {
             this.spawnBiggestPossible(spawn, 'upgrader');
         }
         //create simple builder creeps
         else if (
-            (builders.length < 1 || (builders.length < 1 && spawn.room.energyAvailable > 500)) && this.needForBuilder(spawn)
+            (builders.length < 1 || (builders.length < 3 && spawn.room.energyAvailable > 500 && this.totalEnergyInStores(spawn) > 5000)) && this.needForBuilder(spawn)
             && Game.time % 20 == 0) {
             this.spawnBiggestPossible(spawn, 'builder');
         }
@@ -192,6 +197,13 @@ var roleSpawner = {
         else if (repairers.length < 1) {
             this.spawnBiggestPossible(spawn, 'repairer');
         }
+    },
+    totalEnergyInStores: function(spawn) {
+        return _.sum(spawn.room.find(FIND_MY_STRUCTURES, {filter: function (struct) {
+            return struct.structureType == STRUCTURE_STORAGE || struct.structureType == STRUCTURE_CONTAINER;
+        }}), function (struct) {
+            return struct.store.energy;
+        });
     }
 };
 
