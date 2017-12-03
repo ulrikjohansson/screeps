@@ -73,8 +73,9 @@ var roleEnergyCarrier = {
 	    //override default target or memorized target
 	    if(target) {
 	        if(target instanceof Resource) {
-	            creep.memory.source_target_pos = target.pos;
-	            delete creep.memory.target_id;
+	            creep.debug("Have Resource target");
+	            creep.memory.target_id = target.id;
+	            delete creep.memory.source_target_pos;
 	        }
 	        if(target instanceof Structure || target instanceof Source) {
 	            creep.memory.target_id = target.id;
@@ -83,7 +84,12 @@ var roleEnergyCarrier = {
 	    } else if (creep.memory.target_id || creep.memory.source_target_pos){
 	        if(creep.memory.target_id) {
 	            target = Game.getObjectById(creep.memory.target_id);
+	            if(!target) {
+	                creep.error("Failed to deserialize target from memory! Clearing memory");
+	                delete creep.memory.target_id;
+	            }
 	        }
+	        // Remove, not needed anymore?
 	        if(creep.memory.source_target_pos) {
     	        let mempos = creep.memory.source_target_pos;
                 creep.debug("mempos: " + JSON.stringify(mempos));

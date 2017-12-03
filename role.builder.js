@@ -89,13 +89,17 @@ var roleBuilder = {
             creep.memory.state = STATE_MOVING_TO_CONSTRUCTION_SITE;
             creep.debug("new state {" + state_lookup(creep.memory.state) + "}");
         }
-	},
-	runMoveToConstructionSite: function(creep) {
-	    let target = null;
-	    if(creep.memory.target_id) {
-	        target = Game.getObjectById(creep.memory.target_id);
-	    } else {
-	        let target = creep.findSmallestConstructionSite();
+    },
+    runMoveToConstructionSite: function(creep) {
+        let target = null;
+        if(creep.memory.target_id) {
+            target = Game.getObjectById(creep.memory.target_id);
+            if (!target) {
+                creep.debug("Invalid construction target, clearing memory");
+                delete creep.memory.target_id;
+            }
+        } else {
+            let target = creep.findSmallestConstructionSite();
             if (target) {
                 creep.memory.target_id = target.id;
                 creep.debug("Found new construction site: " + target + " @ " + target.pos);
@@ -113,8 +117,11 @@ var roleBuilder = {
                 return;
             } else {
                 creep.debug("Moving towards " + target + " @ " + target.pos);
-                creep.moveTo(target, {visualizePathStyle: {stroke: '#ffffff'}});
+                let result = creep.moveTo(target, {visualizePathStyle: {stroke: '#ffffff'}});
+                creep.debug("moveTo result: " + result);
             }
+        } else {
+            creep.info("No target construction site found");
         }
 	},
 	runConstruct: function(creep) {

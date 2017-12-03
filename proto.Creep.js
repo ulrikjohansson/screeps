@@ -87,8 +87,12 @@ module.exports = function () {
         function() {
             let stores = this.findNonEmptyEnergyStores();
             let target = this.pos.findClosestByPath(stores);
-            this.debug("Found closest energy store: " + target + " @ " + target.pos);
-            return target;
+            if(target) {
+                this.debug("Found closest energy store: " + target + " @ " + target.pos);
+                return target;
+            }
+
+            this.info("Found no non empty energy stores");
         };
 
     Creep.prototype.findConstructionSites =
