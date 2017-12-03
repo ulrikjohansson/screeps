@@ -24,6 +24,16 @@ var priority = {
 
 module.exports = function () {
 
+    Creep.prototype.getLogLevel =
+        function() {
+            var creepDebug = _.get(this.memory, 'debug', null);
+            if (creepDebug) {
+                return "DEBUG";
+            }
+
+            return global.logLevel;
+        };
+
     Creep.prototype.log =
         function(message, level="INFO") {
             console.log("<span style='color:" + levels[level] + "'>" + level + "</span>: " + this.name + ": " + message);
@@ -127,12 +137,56 @@ module.exports = function () {
 	        }});
 
 	        return targets;
-        }
+        };
 
     Creep.prototype.findAnyEnergy =
         function() {
             let dropped_energy = this.findAllDroppedEnergy();
             let stored_energy = this.findNonEmptyEnergyStores();
             return _.union(dropped_energy, stored_energy);
+        };
+        
+    Creep.prototype.getCreepsByRole =
+        function(creepRole) {
+            return _.filter(Game.creeps, function(creep) {
+                return creep.memory.role == creepRole
+            });
         }
+        
+    Creep.prototype.getFlag =
+        function(flagname) {
+            return Game.flags[flagname];
+        };
+    
+    // Expansion flags are orange
+    Creep.prototype.findUnclaimedExpansionFlag =
+        function() {
+            var self = this;
+            var possible_flags = _.filter(Game.flags, function(flag) {
+                return flag.color == COLOR_ORANGE;
+            });
+            
+            //filter away any flags already occupied by other scouts
+            var claimedFlags = _.pluck(_.filter(Memory.creeps, function(creep) {
+                return _.has(creep, 'claimedFlag');
+            }), 'claimedFlag');
+            var available_flags = _.filter(possible_flags, function(flag) {
+                return !(_.includes(claimedFlags, flag.name));
+            });
+            
+            if (available_flags) {
+                return _.shuffle(available_flags)[0];
+            }
+            
+            this.warning("No available expansion flag found!");
+        };
+    
+    Creep.prototype.getUnclaimedExpansionFlag =
+        function() {
+            var flag = this.findUnclaimedExpansionFlag();
+            if(flag) {
+                this.memory.claimedFlag = flag.name;
+                return flag;
+            }
+        };
 };
