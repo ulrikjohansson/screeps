@@ -36,8 +36,8 @@ module.exports = {
             _.filter(room.find(FIND_MY_CONSTRUCTION_SITES), function(constr) { return constr.structureType == STRUCTURE_EXTENSION}).length;
         console.log("available_extension_constr_slots: " + available_extension_construction_slots);
         
-        if(_.min(max_concurrent_extension_constructions, available_extension_construction_slots) > 0) {
-            let grid = gridUtils.createStarGridMiddleAndPoints(room, room.find(FIND_MY_SPAWNS)[0].pos, available_extension_construction_slots);
+        if(_.min([max_concurrent_extension_constructions, available_extension_construction_slots]) > 0) {
+            let grid = gridUtils.createStarGridMiddleAndPoints(room, room.find(FIND_MY_SPAWNS)[0].pos, _.min([max_concurrent_extension_constructions, available_extension_construction_slots]));
             _.forOwn(grid, function(value, posString) {
                 let posBits = _.words(posString);
                 console.log("posBits: " + JSON.stringify(posBits));
