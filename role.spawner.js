@@ -13,10 +13,11 @@ var level11Generic = {"price": 800, "parts": [WORK, WORK, WORK, WORK, CARRY, CAR
 var level12Generic = {"price": 850, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
 var level13Generic = {"price": 900, "parts": [WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
 
-var level0Carrier = {"price": 200,"parts": [CARRY, CARRY, CARRY, MOVE]};
-var level1Carrier = {"price": 300,"parts": [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
-var level2Carrier = {"price": 350,"parts": [CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
-var level3Carrier = {"price": 550,"parts": [CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
+var level0Carrier = {"price": 100,"parts": [CARRY, MOVE]};
+var level1Carrier = {"price": 200,"parts": [CARRY, CARRY, CARRY, MOVE]};
+var level2Carrier = {"price": 300,"parts": [CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
+var level3Carrier = {"price": 350,"parts": [CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE]};
+var level4Carrier = {"price": 550,"parts": [CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE]};
 
 var level1Harvester = {"price": 300,"parts": [WORK, WORK, MOVE, MOVE]};
 var level2Harvester = {"price": 350,"parts": [WORK, WORK, WORK, MOVE]};
@@ -53,7 +54,8 @@ var roleSpawner = {
                 level0Carrier,
                 level1Carrier,
                 level2Carrier,
-                level3Carrier
+                level3Carrier,
+                level4Carrier
             ],
             "harvester": [
                 level1Harvester,
