@@ -86,7 +86,7 @@ module.exports = function () {
     Creep.prototype.findNonEmptyEnergyStores =
         function() {
             let targets = _.filter(this.findResourceStores(), function(store) {
-                return store.store[RESOURCE_ENERGY] > 0
+                return store.store[RESOURCE_ENERGY] > 0;
             });
             this.debug("Found " + targets.length + " non-empty energy stores");
 
@@ -116,12 +116,13 @@ module.exports = function () {
             this.debug("Found " + targets.length + " construction sites");
             return targets;
         };
+
     Creep.prototype.findSmallestConstructionSite =
         function() {
             let targets = this.findConstructionSites();
             targets = _.sortBy(targets, 'progressTotal');
             if (targets.length > 0) {
-                target = targets[0];
+                let target = targets[0];
                 this.debug("Found new construction site: " + target + " @ " + target.pos);
                 return target;
             } else {
@@ -152,8 +153,15 @@ module.exports = function () {
                 return creep.memory.role == creepRole
             });
         }
+
+    Creep.prototype.getFlagsByColor =
+        function(flagColor) {
+            return _.filter(Game.flags, function(flag) {
+                return flag.color == flagColor;
+            });
+        };
         
-    Creep.prototype.getFlag =
+    Creep.prototype.getFlagByName =
         function(flagname) {
             return Game.flags[flagname];
         };

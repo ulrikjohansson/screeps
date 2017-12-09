@@ -9,12 +9,17 @@ var roleBuilder = require('role.builder');
 var roleRepairer = require('role.repairer');
 var roleSpawner = require('role.spawner');
 var roleScout = require('role.scout');
+var roleClaimer = require('role.claimer');
 var structureTower = require('tower');
+var roomStuff = require('room.basic');
 
 
 module.exports.loop = function () {
     
     console.log("----------------- NEW TICK "+Game.time+"--------------------");
+    for(let roomObj in Game.rooms) {
+        roomStuff.run(Game.rooms[roomObj]);
+    }
 
     for(let name in Memory.creeps) {
         if(!Game.creeps[name]) {
@@ -54,6 +59,9 @@ module.exports.loop = function () {
         }
         if(creep.memory.role == 'scout') {
             roleScout.run(creep);
+        }
+        if(creep.memory.role == 'claimer') {
+            roleClaimer.run(creep);
         }
     }
 }
